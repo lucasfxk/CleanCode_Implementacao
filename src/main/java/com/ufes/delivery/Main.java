@@ -4,22 +4,15 @@ import com.ufes.delivery.adapter.controller.PedidoController;
 import com.ufes.delivery.adapter.presenter.PedidoPresenter;
 import com.ufes.delivery.application.dto.CriarPedidoDTO;
 import com.ufes.delivery.application.dto.ItemDTO;
-import com.ufes.delivery.application.port.in.AplicarCupomInputPort;
-import com.ufes.delivery.application.port.in.CalcularDescontoEntregaInputPort;
-import com.ufes.delivery.application.port.in.CriarPedidoInputPort;
-import com.ufes.delivery.application.port.out.CupomRepositoryOutputPort;
-import com.ufes.delivery.application.port.out.PedidoRepositoryOutputPort;
-import com.ufes.delivery.application.strategy.FormaDescontoTaxaPorBairro;
-import com.ufes.delivery.application.strategy.FormaDescontoTaxaPorTipoCliente;
-import com.ufes.delivery.application.strategy.FormaDescontoTipoItem;
-import com.ufes.delivery.application.strategy.FormaDescontoValorPedido;
-import com.ufes.delivery.application.strategy.IFormaDescontoTaxaEntrega;
-import com.ufes.delivery.application.usecase.AplicarCupomUseCase;
-import com.ufes.delivery.application.usecase.CalcularDescontoEntregaUseCase;
-import com.ufes.delivery.application.usecase.CriarPedidoUseCase;
+import com.ufes.delivery.application.port.in.*;
+import com.ufes.delivery.application.port.out.*;
+import com.ufes.delivery.application.strategy.*;
+import com.ufes.delivery.application.usecase.*;
 import com.ufes.delivery.domain.entity.CupomDescontoPedido;
 import com.ufes.delivery.domain.entity.Pedido;
+import com.ufes.delivery.domain.entity.StatusPedido;
 import com.ufes.delivery.infrastructure.config.ConfiguracaoService;
+import com.ufes.delivery.infrastructure.notification.NotificacaoConsole;
 import com.ufes.delivery.infrastructure.repository.CupomRepositoryEmMemoria;
 import com.ufes.delivery.infrastructure.repository.PedidoRepositoryEmMemoria;
 
@@ -30,38 +23,34 @@ import java.util.List;
 /**
  * Ponto de entrada da aplicacao — Composition Root.
  *
- * Aqui ocorre a montagem de toda a arvore de dependencias (Poor Man's Dependency Injection).
- * Nenhuma camada interna conhece esta classe; ela apenas conecta as implementacoes concretas
- * as interfaces (ports) definidas na camada de Application.
+ * Aqui ocorre a montagem de toda a arvore de dependencias (Poor Man's DI).
+ * Nenhuma camada interna conhece esta classe; ela apenas conecta as
+ * implementacoes concretas as interfaces (ports) da camada Application.
  *
  * Clean Architecture — Dependency Rule:
- *   Main -> Infrastructure -> Application (Use Cases / Ports) -> Domain (Entities)
+ *   Main -> Infrastructure -> Adapter -> Application (Use Cases/Ports) -> Domain
  *   As dependencias sempre apontam para dentro (em direcao ao dominio).
  */
 public class Main {
 
     public static void main(String[] args) {
-        System.out.println("===========================================================");
-        System.out.println("  CLEAN ARCHITECTURE — Sistema de Delivery");
-        System.out.println("  Projeto de Sistemas de Software — UFES 2026-1");
-        System.out.println("===========================================================");
+        cabecalho("CLEAN ARCHITECTURE — Sistema de Delivery", '=');
 
         // =====================================================================
-        // 1. INFRASTRUCTURE — Instanciacao dos repositorios (camada externa)
+        // 1. INFRASTRUCTURE — repositorios e servicos externos
         // =====================================================================
         CupomRepositoryEmMemoria cupomRepositoryConcrete = new CupomRepositoryEmMemoria();
         PedidoRepositoryOutputPort pedidoRepository = new PedidoRepositoryEmMemoria();
+        NotificacaoOutputPort notificacao = new NotificacaoConsole(); // <-- Observer
 
-        // Adiciona cupom valido para demonstracao
         LocalDateTime agora = LocalDateTime.now();
         cupomRepositoryConcrete.adicionarCupom(
                 new CupomDescontoPedido("VALIDOHOJE", 15.0, agora.minusDays(1), agora.plusDays(1)));
 
-        // Cast para a interface (output port) — demonstra Dependency Inversion
         CupomRepositoryOutputPort cupomRepository = cupomRepositoryConcrete;
 
         // =====================================================================
-        // 2. APPLICATION — Instanciacao das estrategias de desconto (Strategy)
+        // 2. APPLICATION — estrategias de desconto (Strategy Pattern)
         // =====================================================================
         List<IFormaDescontoTaxaEntrega> estrategiasDesconto = Arrays.asList(
                 new FormaDescontoTaxaPorBairro(),
@@ -71,7 +60,7 @@ public class Main {
         );
 
         // =====================================================================
-        // 3. APPLICATION — Instanciacao dos Use Cases (injecao via construtor)
+        // 3. APPLICATION — Use Cases (injecao via construtor — DIP)
         // =====================================================================
         double taxaEntregaPadrao = ConfiguracaoService.getTaxaEntregaPadrao();
 
@@ -84,70 +73,122 @@ public class Main {
         AplicarCupomInputPort aplicarCupomUseCase =
                 new AplicarCupomUseCase(cupomRepository);
 
+        AtualizarStatusPedidoInputPort atualizarStatusUseCase =
+                new AtualizarStatusPedidoUseCase(notificacao);
+
+        BuscarPedidoInputPort buscarPedidoUseCase =
+                new BuscarPedidoUseCase(pedidoRepository);
+
         // =====================================================================
-        // 4. ADAPTER — Instanciacao do Presenter e Controller
+        // 4. ADAPTER — Presenter e Controller
         // =====================================================================
         PedidoPresenter presenter = new PedidoPresenter();
         PedidoController controller = new PedidoController(
                 criarPedidoUseCase,
                 calcularDescontoUseCase,
                 aplicarCupomUseCase,
+                atualizarStatusUseCase,
+                buscarPedidoUseCase,
                 presenter
         );
 
         // =====================================================================
-        // 5. EXECUCAO DO CASO DE USO — Simulacao de um pedido de delivery
+        // 5. FLUXO COMPLETO — Pedido 1 (cliente Ouro, bairro com desconto)
         // =====================================================================
-        System.out.println("\n>>> Criando pedido...");
+        cabecalho("PEDIDO 1 — Criacao e Descontos", '-');
 
-        List<ItemDTO> itens = Arrays.asList(
-                new ItemDTO("Caderno", 2, 10.50, "Educacao"),
-                new ItemDTO("Borracha", 5, 4.25, "Educacao"),
-                new ItemDTO("Biscoito", 4, 5.80, "Alimentacao"),
-                new ItemDTO("Pao", 2, 1.50, "Alimentacao"),
-                new ItemDTO("Livro", 2, 40.20, "Lazer"),
-                new ItemDTO("Jogo", 1, 45.90, "Lazer")
+        List<ItemDTO> itens1 = Arrays.asList(
+                new ItemDTO("Caderno",   2,  10.50, "Educacao"),
+                new ItemDTO("Borracha",  5,   4.25, "Educacao"),
+                new ItemDTO("Biscoito",  4,   5.80, "Alimentacao"),
+                new ItemDTO("Pao",       2,   1.50, "Alimentacao"),
+                new ItemDTO("Livro",     2,  40.20, "Lazer"),
+                new ItemDTO("Jogo",      1,  45.90, "Lazer")
         );
 
-        CriarPedidoDTO criarPedidoDTO = new CriarPedidoDTO(
+        CriarPedidoDTO dto1 = new CriarPedidoDTO(
                 "Maria", "Ouro", 1,
                 "Limoeiro", "Cidade Maravilhosa", "Castelo",
-                agora, itens
-        );
+                agora, itens1);
 
-        Pedido pedido = controller.criarPedido(criarPedidoDTO);
-        System.out.println("Pedido criado com sucesso!");
+        Pedido pedido1 = controller.criarPedido(dto1);
+        System.out.println("Pedido criado! Status: " + pedido1.getStatus().name());
 
-        // =====================================================================
-        // 6. CALCULO DE DESCONTOS NA TAXA DE ENTREGA (Strategy Pattern)
-        // =====================================================================
-        System.out.println("\n>>> Calculando descontos na taxa de entrega...");
-        controller.calcularDescontosEntrega(pedido);
-        System.out.println("Descontos calculados!");
+        System.out.println("\n>>> Calculando descontos na taxa de entrega (Strategy)...");
+        controller.calcularDescontosEntrega(pedido1);
 
-        // =====================================================================
-        // 7. APLICACAO DE CUPOM DE DESCONTO NO PEDIDO
-        // =====================================================================
         System.out.println("\n>>> Aplicando cupom VALIDOHOJE...");
-        controller.aplicarCupom(pedido, "VALIDOHOJE", LocalDateTime.now());
-        System.out.println("Cupom aplicado com sucesso!");
+        controller.aplicarCupom(pedido1, "VALIDOHOJE", agora);
 
-        // Tentativa de aplicar cupom inexistente (tratamento de erro)
         System.out.println("\n>>> Tentando aplicar cupom inexistente...");
         try {
-            controller.aplicarCupom(pedido, "CUPOMINEXISTENTE", LocalDateTime.now());
+            controller.aplicarCupom(pedido1, "CUPOMINEXISTENTE", agora);
         } catch (RuntimeException ex) {
             System.out.println("Erro esperado: " + ex.getMessage());
         }
 
-        // =====================================================================
-        // 8. APRESENTACAO DO RESULTADO (Presenter)
-        // =====================================================================
-        String resultado = controller.apresentarPedido(pedido);
-        System.out.println(resultado);
+        System.out.println(controller.apresentarPedido(pedido1));
 
-        System.out.println("===========================================================");
-        System.out.println("  Execucao finalizada com sucesso!");
-        System.out.println("===========================================================");
+        // =====================================================================
+        // 6. CICLO DE VIDA — Atualizacao de Status com Notificacoes (Observer)
+        // =====================================================================
+        cabecalho("CICLO DE VIDA DO PEDIDO — Notificacoes em Tempo Real", '-');
+
+        avancarStatus(controller, pedido1, StatusPedido.CONFIRMADO);
+        avancarStatus(controller, pedido1, StatusPedido.EM_PREPARO);
+        avancarStatus(controller, pedido1, StatusPedido.SAIU_PARA_ENTREGA);
+        avancarStatus(controller, pedido1, StatusPedido.ENTREGUE);
+
+        System.out.println("\n>>> Tentando transicao invalida (ENTREGUE -> CANCELADO)...");
+        try {
+            controller.atualizarStatus(pedido1, StatusPedido.CANCELADO);
+        } catch (IllegalStateException ex) {
+            System.out.println("Erro esperado: " + ex.getMessage());
+        }
+
+        // =====================================================================
+        // 7. PEDIDO 2 — Cancelamento
+        // =====================================================================
+        cabecalho("PEDIDO 2 — Cancelamento", '-');
+
+        List<ItemDTO> itens2 = Arrays.asList(
+                new ItemDTO("Pizza",  1, 55.00, "Alimentacao"),
+                new ItemDTO("Refri",  2,  8.00, "Alimentacao")
+        );
+
+        CriarPedidoDTO dto2 = new CriarPedidoDTO(
+                "Joao", "Prata", 3,
+                "Centro", "Castelo", "Castelo",
+                agora.plusMinutes(5), itens2);
+
+        Pedido pedido2 = controller.criarPedido(dto2);
+        avancarStatus(controller, pedido2, StatusPedido.CONFIRMADO);
+        avancarStatus(controller, pedido2, StatusPedido.CANCELADO);
+
+        // =====================================================================
+        // 8. LISTAGEM — todos os pedidos no repositorio
+        // =====================================================================
+        cabecalho("LISTAGEM DE PEDIDOS", '-');
+        List<Pedido> todos = controller.listarPedidos();
+        System.out.printf("Total de pedidos registrados: %d%n", todos.size());
+        todos.forEach(p -> System.out.printf("  - Cliente: %-10s | Status: %s%n",
+                p.getCliente().getNome(), p.getStatus().name()));
+
+        cabecalho("Execucao finalizada com sucesso!", '=');
+    }
+
+    // -------------------------------------------------------------------------
+    // Helpers de apresentacao
+    // -------------------------------------------------------------------------
+    private static void avancarStatus(PedidoController controller, Pedido pedido, StatusPedido novoStatus) {
+        System.out.printf("%n>>> Atualizando status para: %s%n", novoStatus.name());
+        controller.atualizarStatus(pedido, novoStatus);
+    }
+
+    private static void cabecalho(String titulo, char separador) {
+        String linha = String.valueOf(separador).repeat(63);
+        System.out.println("\n" + linha);
+        System.out.printf("  %s%n", titulo);
+        System.out.println(linha);
     }
 }

@@ -2,122 +2,177 @@
 
 ## Projeto de Sistemas de Software — UFES 2026/1
 
-### Descricao
+### Descrição
 
-Este projeto implementa um **Sistema de Delivery** utilizando os principios da **Clean Architecture** (Robert C. Martin). O sistema gerencia pedidos com calculo de descontos na taxa de entrega e aplicacao de cupons de desconto.
+Implementação de um **Sistema de Delivery** seguindo os princípios da **Clean Architecture** (Robert C. Martin). O sistema gerencia o ciclo de vida completo de pedidos: criação, cálculo de descontos, aplicação de cupons, acompanhamento de status com notificações em tempo real.
 
 ### Arquitetura
 
-O projeto esta organizado em 4 camadas concentricas, seguindo a **Dependency Rule** (dependencias sempre apontam para dentro):
+O projeto segue a **Dependency Rule**: dependências sempre apontam para dentro (em direção ao domínio).
 
 ```
-Infrastructure -> Adapter -> Application (Use Cases) -> Domain (Entities)
+Infrastructure → Adapter → Application (Use Cases / Ports) → Domain (Entities)
 ```
 
 #### Camadas
 
 | Camada | Pacote | Responsabilidade |
-|--------|--------|------------------|
-| **Domain** | `domain.entity` | Entidades de negocio puras (Cliente, Item, Pedido, Cupons) |
-| **Application** | `application.usecase`, `application.port`, `application.dto`, `application.strategy` | Casos de uso, ports (interfaces de entrada/saida), DTOs, estrategias de desconto |
-| **Adapter** | `adapter.controller`, `adapter.presenter` | Controladores e formatadores de saida |
-| **Infrastructure** | `infrastructure.repository`, `infrastructure.config` | Repositorios em memoria e configuracao |
+|--------|--------|-----------------|
+| **Domain** | `domain.entity` | Entidades puras de negócio: `Pedido`, `Cliente`, `Item`, `Cupom*`, `StatusPedido` |
+| **Application** | `application.usecase`, `application.port`, `application.dto`, `application.strategy` | Use Cases, Input/Output Ports, DTOs, estratégias de desconto |
+| **Adapter** | `adapter.controller`, `adapter.presenter` | Controladores e formatadores de saída |
+| **Infrastructure** | `infrastructure.repository`, `infrastructure.notification`, `infrastructure.config` | Repositórios em memória, notificações e configuração |
 
-### Principios SOLID Aplicados
+### Princípios SOLID Aplicados
 
-- **S** (Single Responsibility): Cada classe tem uma unica responsabilidade
-- **O** (Open/Closed): Novas estrategias de desconto sao adicionadas sem alterar codigo existente
-- **L** (Liskov Substitution): Implementacoes de `IFormaDescontoTaxaEntrega` sao intercambiaveis
-- **I** (Interface Segregation): Input/Output ports segregados por caso de uso
-- **D** (Dependency Inversion): Use Cases dependem de abstracoes (ports), nao de implementacoes
+| Princípio | Aplicação |
+|-----------|-----------|
+| **S** — Single Responsibility | Cada classe tem uma única responsabilidade (ex: `PedidoPresenter` só formata, `CriarPedidoUseCase` só cria) |
+| **O** — Open/Closed | Novas estratégias de desconto (`IFormaDescontoTaxaEntrega`) adicionadas sem alterar código existente |
+| **L** — Liskov Substitution | Implementações de `IFormaDescontoTaxaEntrega` e `NotificacaoOutputPort` são intercambiáveis |
+| **I** — Interface Segregation | Input Ports e Output Ports segregados por caso de uso |
+| **D** — Dependency Inversion | Use Cases dependem de abstrações (ports), não de implementações concretas |
 
-### Padroes de Projeto
+### Padrões de Projeto
 
-- **Strategy**: Diferentes formas de desconto na taxa de entrega
-- **Repository**: Abstracao da persistencia de dados
-- **DTO**: Transferencia de dados entre camadas
-- **Dependency Injection**: Composicao de dependencias no Main (Composition Root)
-- **Facade**: Controller simplifica o acesso aos use cases
+| Padrão | Onde | Por quê |
+|--------|------|---------|
+| **Strategy** | `IFormaDescontoTaxaEntrega` e suas 4 implementações | Permite variar algoritmos de desconto sem alterar o Use Case |
+| **Observer** | `NotificacaoOutputPort` / `NotificacaoConsole` | Desacopla a notificação de mudança de status do Use Case que a dispara |
+| **Repository** | `PedidoRepositoryOutputPort`, `CupomRepositoryOutputPort` | Abstrai a persistência; troca de banco de dados não afeta a lógica |
+| **DTO** | `CriarPedidoDTO`, `ItemDTO`, `PedidoResumoDTO` | Transferência de dados entre camadas sem expor entidades de domínio |
+| **Dependency Injection** | `Main.java` (Composition Root) | Monta toda a árvore de dependências em um único ponto |
+| **Facade** | `PedidoController` | Simplifica o acesso aos múltiplos use cases para a camada de apresentação |
 
-### Pre-requisitos
+### Fluxo da Aplicação
+
+```
+1. Criação do Pedido     → CriarPedidoUseCase
+2. Cálculo de Descontos  → CalcularDescontoEntregaUseCase (Strategy)
+3. Aplicação de Cupom    → AplicarCupomUseCase
+4. Ciclo de Status       → AtualizarStatusPedidoUseCase (Observer)
+   CRIADO → CONFIRMADO → EM_PREPARO → SAIU_PARA_ENTREGA → ENTREGUE
+                       ↘ CANCELADO (a partir de CRIADO ou CONFIRMADO)
+5. Listagem              → BuscarPedidoUseCase
+```
+
+
+### Interface Gráfica (MVP Swing)
+
+O projeto inclui uma interface gráfica Swing que demonstra toda a arquitetura visualmente,
+mantendo o padrão Clean Architecture — o Swing fica **exclusivamente** na camada Adapter.
+
+**Como executar a interface gráfica:**
+
+```bash
+mvn exec:java
+# ou diretamente:
+mvn clean package
+java -jar target/delivery-clean-architecture-1.0-SNAPSHOT.jar
+```
+
+**Para executar o modo console (Main.java original):**
+```bash
+mvn exec:java -Dexec.mainClass=com.ufes.delivery.Main
+```
+
+**Abas da interface:**
+- **Novo Pedido** — formulário para criar pedidos com itens, tipo de cliente e bairro
+- **Gerenciar** — aplicar descontos (Strategy), cupons, avançar status (Observer) e ver resumo
+
+**O que a UI demonstra na prática:**
+- Os botões de status são habilitados/desabilitados conforme as transições válidas do `StatusPedido`
+- O log verde (Observer) mostra notificações em tempo real via `NotificacaoSwing`, que implementa `NotificacaoOutputPort` — mesma interface usada pelo `NotificacaoConsole`
+- Trocar de console para UI não mudou **nenhuma linha** do Domain ou Application
+
+### Pré-requisitos
 
 - **Java 21** (JDK 21)
 - **Apache Maven 3.8+**
 
 ### Como Executar
 
-1. Clone o repositorio:
 ```bash
+# 1. Clone o repositório
 git clone <URL_DO_REPOSITORIO>
-cd Delivery+CleanArchitecture
-```
+cd delivery-clean-architecture
 
-2. Compile o projeto:
-```bash
+# 2. Compile
 mvn clean compile
-```
 
-3. Execute:
-```bash
+# 3. Execute
 mvn exec:java
-```
 
-Ou alternativamente:
-```bash
+# Alternativa (JAR executável)
 mvn clean package
 java -jar target/delivery-clean-architecture-1.0-SNAPSHOT.jar
+```
+
+### Como Executar os Testes
+
+```bash
+mvn test
 ```
 
 ### Estrutura do Projeto
 
 ```
-src/main/java/com/ufes/delivery/
-|-- Main.java                          (Composition Root)
-|-- domain/
-|   |-- entity/
-|       |-- Cliente.java
-|       |-- Item.java
-|       |-- Pedido.java
-|       |-- CupomDescontoPedido.java
-|       |-- CupomDescontoEntrega.java
-|-- application/
-|   |-- dto/
-|   |   |-- CriarPedidoDTO.java
-|   |   |-- ItemDTO.java
-|   |   |-- PedidoResumoDTO.java
-|   |-- port/
-|   |   |-- in/
-|   |   |   |-- CriarPedidoInputPort.java
-|   |   |   |-- AplicarCupomInputPort.java
-|   |   |   |-- CalcularDescontoEntregaInputPort.java
-|   |   |-- out/
-|   |       |-- CupomRepositoryOutputPort.java
-|   |       |-- PedidoRepositoryOutputPort.java
-|   |-- strategy/
-|   |   |-- IFormaDescontoTaxaEntrega.java
-|   |   |-- FormaDescontoTaxaPorBairro.java
-|   |   |-- FormaDescontoTaxaPorTipoCliente.java
-|   |   |-- FormaDescontoTipoItem.java
-|   |   |-- FormaDescontoValorPedido.java
-|   |-- usecase/
-|       |-- CriarPedidoUseCase.java
-|       |-- AplicarCupomUseCase.java
-|       |-- CalcularDescontoEntregaUseCase.java
-|-- adapter/
-|   |-- controller/
-|   |   |-- PedidoController.java
-|   |-- presenter/
-|       |-- PedidoPresenter.java
-|-- infrastructure/
-    |-- config/
-    |   |-- ConfiguracaoService.java
-    |-- repository/
-        |-- CupomRepositoryEmMemoria.java
-        |-- PedidoRepositoryEmMemoria.java
+src/
+├── main/java/com/ufes/delivery/
+│   ├── Main.java                              (Composition Root)
+│   ├── domain/entity/
+│   │   ├── Cliente.java
+│   │   ├── Item.java
+│   │   ├── Pedido.java
+│   │   ├── StatusPedido.java                  (enum — ciclo de vida)
+│   │   ├── CupomDescontoPedido.java
+│   │   └── CupomDescontoEntrega.java
+│   ├── application/
+│   │   ├── dto/
+│   │   │   ├── CriarPedidoDTO.java
+│   │   │   ├── ItemDTO.java
+│   │   │   └── PedidoResumoDTO.java
+│   │   ├── port/
+│   │   │   ├── in/
+│   │   │   │   ├── CriarPedidoInputPort.java
+│   │   │   │   ├── AplicarCupomInputPort.java
+│   │   │   │   ├── CalcularDescontoEntregaInputPort.java
+│   │   │   │   ├── AtualizarStatusPedidoInputPort.java
+│   │   │   │   └── BuscarPedidoInputPort.java
+│   │   │   └── out/
+│   │   │       ├── PedidoRepositoryOutputPort.java
+│   │   │       ├── CupomRepositoryOutputPort.java
+│   │   │       └── NotificacaoOutputPort.java
+│   │   ├── strategy/
+│   │   │   ├── IFormaDescontoTaxaEntrega.java
+│   │   │   ├── FormaDescontoTaxaPorBairro.java
+│   │   │   ├── FormaDescontoTaxaPorTipoCliente.java
+│   │   │   ├── FormaDescontoTipoItem.java
+│   │   │   └── FormaDescontoValorPedido.java
+│   │   └── usecase/
+│   │       ├── CriarPedidoUseCase.java
+│   │       ├── AplicarCupomUseCase.java
+│   │       ├── CalcularDescontoEntregaUseCase.java
+│   │       ├── AtualizarStatusPedidoUseCase.java
+│   │       └── BuscarPedidoUseCase.java
+│   ├── adapter/
+│   │   ├── controller/PedidoController.java
+│   │   └── presenter/PedidoPresenter.java
+│   └── infrastructure/
+│       ├── config/ConfiguracaoService.java
+│       ├── notification/NotificacaoConsole.java
+│       └── repository/
+│           ├── CupomRepositoryEmMemoria.java
+│           └── PedidoRepositoryEmMemoria.java
+└── test/java/com/ufes/delivery/
+    ├── domain/entity/PedidoTest.java
+    └── application/usecase/
+        ├── CriarPedidoUseCaseTest.java
+        └── AtualizarStatusPedidoUseCaseTest.java
 ```
 
 ### Tecnologias
 
 - Java 21
 - Apache Maven
-# trabalho-final-pss
+- JUnit 5 (testes unitários)

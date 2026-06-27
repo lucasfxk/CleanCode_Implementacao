@@ -1,5 +1,6 @@
 package com.ufes.delivery.domain.entity;
 
+import com.ufes.delivery.domain.entity.StatusPedido;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +15,7 @@ public class Pedido {
     private LocalDateTime data;
 
     private CupomDescontoPedido cupomPedidoAplicado;
+    private StatusPedido status = StatusPedido.CRIADO;
 
     public Pedido(LocalDateTime data, Cliente cliente, double taxaEntrega) {
         if (data == null) {
@@ -135,6 +137,26 @@ public class Pedido {
         this.cupomPedidoAplicado = cupomPedidoAplicado;
     }
 
+
+    public StatusPedido getStatus() {
+        return status;
+    }
+
+    /**
+     * Atualiza o status do pedido respeitando as transicoes validas.
+     * Regra de negocio encapsulada no Domain — Clean Architecture.
+     */
+    public void atualizarStatus(StatusPedido novoStatus) {
+        if (novoStatus == null) {
+            throw new IllegalArgumentException("Novo status nao pode ser nulo");
+        }
+        if (!this.status.podeTransicionarPara(novoStatus)) {
+            throw new IllegalStateException(
+                "Transicao invalida: " + this.status.name() + " -> " + novoStatus.name());
+        }
+        this.status = novoStatus;
+    }
+
     @Override
     public String toString() {
         return "Pedido{"
@@ -146,6 +168,7 @@ public class Pedido {
                 + ", cupomPedidoAplicado=" + cupomPedidoAplicado
                 + ", valorPedido=" + getValorPedido()
                 + ", totalDescontosTaxaEntrega=" + getTotalDescontosTaxaEntrega()
+                + ", status=" + status
                 + ", valorTotal=" + calcularValorTotal()
                 + "}";
     }

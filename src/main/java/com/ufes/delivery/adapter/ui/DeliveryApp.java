@@ -48,8 +48,6 @@ public class DeliveryApp extends JFrame {
     private void aoCriarPedido(Pedido pedido) {
         painelGerenciar.atualizarListaPedidos();
         // Muda para a aba de gerenciamento automaticamente
-        JTabbedPane abas = (JTabbedPane) ((JPanel) getContentPane().getComponent(0)).getParent();
-        // busca o JTabbedPane na hierarquia
         for (Component c : getContentPane().getComponents()) {
             if (c instanceof JTabbedPane tp) {
                 tp.setSelectedIndex(1);

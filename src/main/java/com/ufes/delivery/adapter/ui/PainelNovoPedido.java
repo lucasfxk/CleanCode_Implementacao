@@ -120,6 +120,8 @@ public class PainelNovoPedido extends JPanel {
         btn.setBackground(new Color(34, 139, 34));
         btn.setForeground(Color.WHITE);
         btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
         btn.addActionListener(e -> criarPedido());
         return btn;
     }
@@ -149,6 +151,18 @@ public class PainelNovoPedido extends JPanel {
     }
 
     private void criarPedido() {
+        if (campoNome.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Informe o nome do cliente.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (campoLogradouro.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Informe o logradouro.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        if (campoCidade.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Informe a cidade.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         if (modeloItens.getRowCount() == 0) {
             JOptionPane.showMessageDialog(this, "Adicione ao menos um item.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;

@@ -116,6 +116,8 @@ public class PainelGerenciarPedido extends JPanel {
         btn.setBackground(new Color(70, 130, 180));
         btn.setForeground(Color.WHITE);
         btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
         btn.addActionListener(e -> calcularDescontos());
         p.add(btn, BorderLayout.SOUTH);
         return p;
@@ -140,6 +142,8 @@ public class PainelGerenciarPedido extends JPanel {
         btn.setBackground(new Color(184, 134, 11));
         btn.setForeground(Color.WHITE);
         btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
         btn.addActionListener(e -> aplicarCupom());
         p.add(btn, BorderLayout.SOUTH);
         return p;
@@ -265,6 +269,8 @@ public class PainelGerenciarPedido extends JPanel {
         btn.setBackground(cor);
         btn.setForeground(Color.WHITE);
         btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
         btn.setFont(btn.getFont().deriveFont(Font.BOLD, 10f));
         btn.addActionListener(e -> avancarStatus(alvo));
     }

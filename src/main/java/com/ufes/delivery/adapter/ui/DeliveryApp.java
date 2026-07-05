@@ -1,7 +1,7 @@
 package com.ufes.delivery.adapter.ui;
 
 import com.ufes.delivery.adapter.controller.PedidoController;
-import com.ufes.delivery.domain.entity.Pedido;
+import com.ufes.delivery.application.dto.PedidoResumoDTO;
 
 import javax.swing.*;
 import java.awt.*;
@@ -45,7 +45,7 @@ public class DeliveryApp extends JFrame {
     // Callback — chamado por PainelNovoPedido quando um pedido e criado
     // -------------------------------------------------------------------------
 
-    private void aoCriarPedido(Pedido pedido) {
+    private void aoCriarPedido(PedidoResumoDTO pedido) {
         painelGerenciar.atualizarListaPedidos();
         // Muda para a aba de gerenciamento automaticamente
         for (Component c : getContentPane().getComponents()) {

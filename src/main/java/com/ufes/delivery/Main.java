@@ -11,6 +11,7 @@ import com.ufes.delivery.application.usecase.*;
 import com.ufes.delivery.domain.entity.CupomDescontoPedido;
 import com.ufes.delivery.domain.entity.Pedido;
 import com.ufes.delivery.domain.entity.StatusPedido;
+import com.ufes.delivery.application.dto.PedidoResumoDTO;
 import com.ufes.delivery.infrastructure.config.ConfiguracaoService;
 import com.ufes.delivery.infrastructure.notification.NotificacaoConsole;
 import com.ufes.delivery.infrastructure.repository.CupomRepositoryEmMemoria;
@@ -111,37 +112,37 @@ public class Main {
                 "Limoeiro", "Cidade Maravilhosa", "Castelo",
                 agora, itens1);
 
-        Pedido pedido1 = controller.criarPedido(dto1);
-        System.out.println("Pedido criado! Status: " + pedido1.getStatus().name());
+        PedidoResumoDTO pedido1 = controller.criarPedido(dto1);
+        System.out.println("Pedido criado! Status: " + pedido1.getStatus());
 
         System.out.println("\n>>> Calculando descontos na taxa de entrega (Strategy)...");
-        controller.calcularDescontosEntrega(pedido1);
+        controller.calcularDescontosEntrega(pedido1.getId());
 
         System.out.println("\n>>> Aplicando cupom VALIDOHOJE...");
-        controller.aplicarCupom(pedido1, "VALIDOHOJE", agora);
+        controller.aplicarCupom(pedido1.getId(), "VALIDOHOJE", agora);
 
         System.out.println("\n>>> Tentando aplicar cupom inexistente...");
         try {
-            controller.aplicarCupom(pedido1, "CUPOMINEXISTENTE", agora);
+            controller.aplicarCupom(pedido1.getId(), "CUPOMINEXISTENTE", agora);
         } catch (RuntimeException ex) {
             System.out.println("Erro esperado: " + ex.getMessage());
         }
 
-        System.out.println(controller.apresentarPedido(pedido1));
+        System.out.println(controller.apresentarPedido(pedido1.getId()));
 
         // =====================================================================
         // 6. CICLO DE VIDA — Atualizacao de Status com Notificacoes (Observer)
         // =====================================================================
         cabecalho("CICLO DE VIDA DO PEDIDO — Notificacoes em Tempo Real", '-');
 
-        avancarStatus(controller, pedido1, StatusPedido.CONFIRMADO);
-        avancarStatus(controller, pedido1, StatusPedido.EM_PREPARO);
-        avancarStatus(controller, pedido1, StatusPedido.SAIU_PARA_ENTREGA);
-        avancarStatus(controller, pedido1, StatusPedido.ENTREGUE);
+        avancarStatus(controller, pedido1.getId(), "CONFIRMADO");
+        avancarStatus(controller, pedido1.getId(), "EM_PREPARO");
+        avancarStatus(controller, pedido1.getId(), "SAIU_PARA_ENTREGA");
+        avancarStatus(controller, pedido1.getId(), "ENTREGUE");
 
         System.out.println("\n>>> Tentando transicao invalida (ENTREGUE -> CANCELADO)...");
         try {
-            controller.atualizarStatus(pedido1, StatusPedido.CANCELADO);
+            controller.atualizarStatus(pedido1.getId(), "CANCELADO");
         } catch (IllegalStateException ex) {
             System.out.println("Erro esperado: " + ex.getMessage());
         }
@@ -161,18 +162,18 @@ public class Main {
                 "Centro", "Castelo", "Castelo",
                 agora.plusMinutes(5), itens2);
 
-        Pedido pedido2 = controller.criarPedido(dto2);
-        avancarStatus(controller, pedido2, StatusPedido.CONFIRMADO);
-        avancarStatus(controller, pedido2, StatusPedido.CANCELADO);
+        PedidoResumoDTO pedido2 = controller.criarPedido(dto2);
+        avancarStatus(controller, pedido2.getId(), "CONFIRMADO");
+        avancarStatus(controller, pedido2.getId(), "CANCELADO");
 
         // =====================================================================
         // 8. LISTAGEM — todos os pedidos no repositorio
         // =====================================================================
         cabecalho("LISTAGEM DE PEDIDOS", '-');
-        List<Pedido> todos = controller.listarPedidos();
+        List<PedidoResumoDTO> todos = controller.listarPedidos();
         System.out.printf("Total de pedidos registrados: %d%n", todos.size());
         todos.forEach(p -> System.out.printf("  - Cliente: %-10s | Status: %s%n",
-                p.getCliente().getNome(), p.getStatus().name()));
+                p.getNomeCliente(), p.getStatus()));
 
         cabecalho("Execucao finalizada com sucesso!", '=');
     }
@@ -180,9 +181,9 @@ public class Main {
     // -------------------------------------------------------------------------
     // Helpers de apresentacao
     // -------------------------------------------------------------------------
-    private static void avancarStatus(PedidoController controller, Pedido pedido, StatusPedido novoStatus) {
-        System.out.printf("%n>>> Atualizando status para: %s%n", novoStatus.name());
-        controller.atualizarStatus(pedido, novoStatus);
+    private static void avancarStatus(PedidoController controller, String pedidoId, String novoStatus) {
+        System.out.printf("%n>>> Atualizando status para: %s%n", novoStatus);
+        controller.atualizarStatus(pedidoId, novoStatus);
     }
 
     private static void cabecalho(String titulo, char separador) {

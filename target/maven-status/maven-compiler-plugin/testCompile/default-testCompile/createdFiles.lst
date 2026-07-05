@@ -1,0 +1,4 @@
+com\ufes\delivery\application\usecase\CriarPedidoUseCaseTest.class
+com\ufes\delivery\domain\entity\PedidoTest.class
+com\ufes\delivery\application\strategy\FormaDescontoTaxaEntregaTest.class
+com\ufes\delivery\application\usecase\AtualizarStatusPedidoUseCaseTest.class

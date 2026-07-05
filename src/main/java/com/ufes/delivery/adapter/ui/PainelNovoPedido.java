@@ -3,7 +3,7 @@ package com.ufes.delivery.adapter.ui;
 import com.ufes.delivery.adapter.controller.PedidoController;
 import com.ufes.delivery.application.dto.CriarPedidoDTO;
 import com.ufes.delivery.application.dto.ItemDTO;
-import com.ufes.delivery.domain.entity.Pedido;
+import com.ufes.delivery.application.dto.PedidoResumoDTO;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -49,13 +49,13 @@ public class PainelNovoPedido extends JPanel {
             new String[]{"Alimentacao", "Educacao", "Lazer", "Higiene", "Eletronico"});
 
     private final PedidoController controller;
-    private final Consumer<Pedido> aocriarPedido;
+    private final Consumer<PedidoResumoDTO> aocriarPedido;
 
     /**
      * @param controller    controlador existente (Adapter)
      * @param aocriarPedido callback invocado quando um pedido e criado com sucesso
      */
-    public PainelNovoPedido(PedidoController controller, Consumer<Pedido> aocriarPedido) {
+    public PainelNovoPedido(PedidoController controller, Consumer<PedidoResumoDTO> aocriarPedido) {
         this.controller   = controller;
         this.aocriarPedido = aocriarPedido;
         setLayout(new BorderLayout(8, 8));
@@ -181,9 +181,9 @@ public class PainelNovoPedido extends JPanel {
                     itens
             );
 
-            Pedido pedido = controller.criarPedido(dto);
+            PedidoResumoDTO pedido = controller.criarPedido(dto);
             JOptionPane.showMessageDialog(this,
-                    "Pedido criado com sucesso para " + pedido.getCliente().getNome() + "!",
+                    "Pedido criado com sucesso para " + pedido.getNomeCliente() + "!",
                     "Sucesso", JOptionPane.INFORMATION_MESSAGE);
 
             aocriarPedido.accept(pedido);

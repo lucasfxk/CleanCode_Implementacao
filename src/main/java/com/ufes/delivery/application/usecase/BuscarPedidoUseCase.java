@@ -25,4 +25,10 @@ public class BuscarPedidoUseCase implements BuscarPedidoInputPort {
     public List<Pedido> listarTodos() {
         return pedidoRepository.listarTodos();
     }
+
+    @Override
+    public Pedido buscarPorId(String id) {
+        return pedidoRepository.buscarPorId(id)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido nao encontrado: " + id));
+    }
 }

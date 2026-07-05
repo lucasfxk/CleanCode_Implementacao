@@ -8,4 +8,5 @@ import java.util.List;
  */
 public interface BuscarPedidoInputPort {
     List<Pedido> listarTodos();
+    Pedido buscarPorId(String id);
 }

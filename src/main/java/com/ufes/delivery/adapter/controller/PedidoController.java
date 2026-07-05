@@ -8,9 +8,11 @@ import com.ufes.delivery.application.port.in.CalcularDescontoEntregaInputPort;
 import com.ufes.delivery.application.port.in.AtualizarStatusPedidoInputPort;
 import com.ufes.delivery.application.port.in.BuscarPedidoInputPort;
 import com.ufes.delivery.application.port.in.CriarPedidoInputPort;
+import com.ufes.delivery.application.port.out.PresenterOutputPort;
 import com.ufes.delivery.domain.entity.Pedido;
 import com.ufes.delivery.domain.entity.StatusPedido;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -21,14 +23,14 @@ public class PedidoController {
     private final AplicarCupomInputPort aplicarCupomUseCase;
     private final AtualizarStatusPedidoInputPort atualizarStatusUseCase;
     private final BuscarPedidoInputPort buscarPedidoUseCase;
-    private final PedidoPresenter presenter;
+    private final PresenterOutputPort presenter;
 
     public PedidoController(CriarPedidoInputPort criarPedidoUseCase,
                             CalcularDescontoEntregaInputPort calcularDescontoEntregaUseCase,
                             AplicarCupomInputPort aplicarCupomUseCase,
                             AtualizarStatusPedidoInputPort atualizarStatusUseCase,
                             BuscarPedidoInputPort buscarPedidoUseCase,
-                            PedidoPresenter presenter) {
+                            PresenterOutputPort presenter) {
         this.criarPedidoUseCase = Objects.requireNonNull(criarPedidoUseCase);
         this.calcularDescontoEntregaUseCase = Objects.requireNonNull(calcularDescontoEntregaUseCase);
         this.aplicarCupomUseCase = Objects.requireNonNull(aplicarCupomUseCase);
@@ -37,32 +39,41 @@ public class PedidoController {
         this.presenter = Objects.requireNonNull(presenter);
     }
 
-    public Pedido criarPedido(CriarPedidoDTO dto) {
-        return criarPedidoUseCase.executar(dto);
-    }
-
-    public void calcularDescontosEntrega(Pedido pedido) {
-        calcularDescontoEntregaUseCase.executar(pedido);
-    }
-
-    public void aplicarCupom(Pedido pedido, String codigoCupom, LocalDateTime dataHoraAplicacao) {
-        aplicarCupomUseCase.executar(pedido, codigoCupom, dataHoraAplicacao);
-    }
-
-    public PedidoResumoDTO obterResumo(Pedido pedido) {
+    public PedidoResumoDTO criarPedido(CriarPedidoDTO dto) {
+        Pedido pedido = criarPedidoUseCase.executar(dto);
         return presenter.toResumoDTO(pedido);
     }
 
-    public String apresentarPedido(Pedido pedido) {
+    public void calcularDescontosEntrega(String pedidoId) {
+        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
+        calcularDescontoEntregaUseCase.executar(pedido);
+    }
+
+    public void aplicarCupom(String pedidoId, String codigoCupom, LocalDateTime dataHoraAplicacao) {
+        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
+        aplicarCupomUseCase.executar(pedido, codigoCupom, dataHoraAplicacao);
+    }
+
+    public PedidoResumoDTO obterResumo(String pedidoId) {
+        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
+        return presenter.toResumoDTO(pedido);
+    }
+
+    public String apresentarPedido(String pedidoId) {
+        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
         return presenter.formatarPedido(pedido);
     }
 
-    public void atualizarStatus(Pedido pedido, StatusPedido novoStatus) {
+    public void atualizarStatus(String pedidoId, String novoStatusStr) {
+        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
+        StatusPedido novoStatus = StatusPedido.valueOf(novoStatusStr);
         atualizarStatusUseCase.executar(pedido, novoStatus);
     }
 
-    public List<Pedido> listarPedidos() {
-        return buscarPedidoUseCase.listarTodos();
+    public List<PedidoResumoDTO> listarPedidos() {
+        return buscarPedidoUseCase.listarTodos().stream()
+                .map(presenter::toResumoDTO)
+                .collect(Collectors.toList());
     }
 
 }

@@ -55,6 +55,7 @@ flowchart LR
 ```mermaid
 classDiagram
     class Pedido {
+        -String id
         -double taxaEntrega
         -List~Item~ itens
         -Cliente cliente
@@ -62,6 +63,7 @@ classDiagram
         -LocalDateTime data
         -CupomDescontoPedido cupomPedidoAplicado
         -StatusPedido status
+        +getId() String
         +adicionarItem(Item) void
         +getValorPedido() double
         +getTotalDescontosTaxaEntrega() double
@@ -173,12 +175,14 @@ classDiagram
 
     class BuscarPedidoInputPort {
         <<interface>>
+        +buscarPorId(String) Pedido
         +listarTodos() List~Pedido~
     }
 
     class PedidoRepositoryOutputPort {
         <<interface>>
         +salvar(Pedido) void
+        +buscarPorId(String) Optional~Pedido~
         +buscarPorData(LocalDateTime) Optional~Pedido~
         +listarTodos() List~Pedido~
     }
@@ -192,6 +196,12 @@ classDiagram
     class NotificacaoOutputPort {
         <<interface>>
         +notificarMudancaStatus(Pedido, StatusPedido, StatusPedido) void
+    }
+
+    class PresenterOutputPort {
+        <<interface>>
+        +toResumoDTO(Pedido) PedidoResumoDTO
+        +formatarPedido(Pedido) String
     }
 
     class IFormaDescontoTaxaEntrega {
@@ -223,6 +233,7 @@ classDiagram
 
     class BuscarPedidoUseCase {
         -PedidoRepositoryOutputPort pedidoRepository
+        +buscarPorId(String) Pedido
         +listarTodos() List~Pedido~
     }
 
@@ -302,6 +313,8 @@ classDiagram
     }
 
     class PedidoResumoDTO {
+        -String id
+        -String status
         -LocalDateTime data
         -String nomeCliente
         -String tipoCliente
@@ -329,14 +342,14 @@ classDiagram
         -AplicarCupomInputPort aplicarCupomUseCase
         -AtualizarStatusPedidoInputPort atualizarStatusUseCase
         -BuscarPedidoInputPort buscarPedidoUseCase
-        -PedidoPresenter presenter
-        +criarPedido(CriarPedidoDTO) Pedido
-        +calcularDescontosEntrega(Pedido) void
-        +aplicarCupom(Pedido, String, LocalDateTime) void
-        +atualizarStatus(Pedido, StatusPedido) void
-        +listarPedidos() List~Pedido~
-        +obterResumo(Pedido) PedidoResumoDTO
-        +apresentarPedido(Pedido) String
+        -PresenterOutputPort presenter
+        +criarPedido(CriarPedidoDTO) PedidoResumoDTO
+        +calcularDescontosEntrega(String) void
+        +aplicarCupom(String, String, LocalDateTime) void
+        +atualizarStatus(String, String) void
+        +listarPedidos() List~PedidoResumoDTO~
+        +obterResumo(String) PedidoResumoDTO
+        +apresentarPedido(String) String
     }
 
     class PedidoPresenter {
@@ -351,7 +364,7 @@ classDiagram
 
     class PainelNovoPedido {
         -PedidoController controller
-        -Consumer~Pedido~ aocriarPedido
+        -Consumer~PedidoResumoDTO~ aocriarPedido
         -DefaultTableModel modeloItens
         -criarPedido() void
         -coletarItens() List~ItemDTO~
@@ -359,7 +372,7 @@ classDiagram
 
     class PainelGerenciarPedido {
         -PedidoController controller
-        -List~Pedido~ pedidosCache
+        -List~PedidoResumoDTO~ pedidosCache
         +atualizarListaPedidos() void
         +adicionarLogNotificacao(String) void
         -calcularDescontos() void
@@ -379,6 +392,7 @@ classDiagram
     class PedidoRepositoryEmMemoria {
         -List~Pedido~ pedidos
         +salvar(Pedido) void
+        +buscarPorId(String) Optional~Pedido~
         +buscarPorData(LocalDateTime) Optional~Pedido~
         +listarTodos() List~Pedido~
     }
@@ -398,7 +412,8 @@ classDiagram
     DeliveryApp --> PainelGerenciarPedido
     PainelNovoPedido --> PedidoController
     PainelGerenciarPedido --> PedidoController
-    PedidoController --> PedidoPresenter
+    PedidoController --> PresenterOutputPort
+    PedidoPresenter ..|> PresenterOutputPort
 
     NotificacaoSwing ..|> NotificacaoOutputPort
     NotificacaoConsole ..|> NotificacaoOutputPort
@@ -451,6 +466,7 @@ graph TB
             PedidoRepoOP["PedidoRepositoryOutputPort"]
             CupomRepoOP["CupomRepositoryOutputPort"]
             NotificacaoOP["NotificacaoOutputPort"]
+            PresenterOP["PresenterOutputPort"]
         end
         subgraph "Strategy"
             IForma["IFormaDescontoTaxaEntrega"]
@@ -481,12 +497,14 @@ graph TB
     CupomRepoMem -.-> CupomRepoOP
     NotifConsole -.-> NotificacaoOP
     NotifSwing -.-> NotificacaoOP
+    Presenter -.-> PresenterOP
 
     PedidoCtrl --> CriarPedidoIP
     PedidoCtrl --> CalcDescontoIP
     PedidoCtrl --> AplicarCupomIP
     PedidoCtrl --> AtualizarStatusIP
     PedidoCtrl --> BuscarPedidoIP
+    PedidoCtrl --> PresenterOP
 
     CriarPedidoUC -.-> CriarPedidoIP
     CalcDescontoUC -.-> CalcDescontoIP

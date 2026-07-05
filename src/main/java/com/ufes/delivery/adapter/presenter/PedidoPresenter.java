@@ -5,15 +5,17 @@ import com.ufes.delivery.domain.entity.CupomDescontoEntrega;
 import com.ufes.delivery.domain.entity.CupomDescontoPedido;
 import com.ufes.delivery.domain.entity.Item;
 import com.ufes.delivery.domain.entity.Pedido;
+import com.ufes.delivery.application.port.out.PresenterOutputPort;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class PedidoPresenter {
+public class PedidoPresenter implements PresenterOutputPort {
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
 
+    @Override
     public PedidoResumoDTO toResumoDTO(Pedido pedido) {
         List<String> itensDescricao = pedido.getItens().stream()
                 .map(item -> item.getNome() + " (" + item.getQuantidade() + "x R$" +
@@ -29,6 +31,7 @@ public class PedidoPresenter {
         String cupomPedidoStr = cupomPedido.map(c -> c.getCodigo() + " (" + c.getPercentual() + "%)").orElse("Nenhum");
 
         return new PedidoResumoDTO(
+                pedido.getId(),
                 pedido.getData(),
                 pedido.getCliente().getNome(),
                 pedido.getCliente().getTipo(),
@@ -40,10 +43,12 @@ public class PedidoPresenter {
                 pedido.getTaxaEntregaComDesconto(),
                 cuponsEntrega,
                 cupomPedidoStr,
-                pedido.calcularValorTotal()
+                pedido.calcularValorTotal(),
+                pedido.getStatus().name()
         );
     }
 
+    @Override
     public String formatarPedido(Pedido pedido) {
         PedidoResumoDTO resumo = toResumoDTO(pedido);
         StringBuilder sb = new StringBuilder();

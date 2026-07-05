@@ -6,6 +6,7 @@ import java.util.Optional;
 
 public interface PedidoRepositoryOutputPort {
     void salvar(Pedido pedido);
+    Optional<Pedido> buscarPorId(String id);
     Optional<Pedido> buscarPorData(java.time.LocalDateTime data);
     List<Pedido> listarTodos();
 }

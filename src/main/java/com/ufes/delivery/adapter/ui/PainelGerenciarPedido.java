@@ -2,8 +2,6 @@ package com.ufes.delivery.adapter.ui;
 
 import com.ufes.delivery.adapter.controller.PedidoController;
 import com.ufes.delivery.application.dto.PedidoResumoDTO;
-import com.ufes.delivery.domain.entity.Pedido;
-import com.ufes.delivery.domain.entity.StatusPedido;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -30,7 +28,7 @@ public class PainelGerenciarPedido extends JPanel {
     // --- Lista de pedidos ---
     private final DefaultListModel<String> modeloLista = new DefaultListModel<>();
     private final JList<String> listaPedidos = new JList<>(modeloLista);
-    private List<Pedido> pedidosCache = List.of();
+    private List<PedidoResumoDTO> pedidosCache = List.of();
 
     // --- Ações ---
     private final JTextField campoCupom = new JTextField("VALIDOHOJE", 12);
@@ -160,11 +158,11 @@ public class PainelGerenciarPedido extends JPanel {
         p.add(atual, BorderLayout.NORTH);
 
         JPanel botoes = new JPanel(new GridLayout(5, 1, 3, 3));
-        configurarBotaoStatus(btnConfirmar,  StatusPedido.CONFIRMADO,       new Color(70, 130, 180));
-        configurarBotaoStatus(btnEmPreparo,  StatusPedido.EM_PREPARO,       new Color(255, 140, 0));
-        configurarBotaoStatus(btnSaiu,       StatusPedido.SAIU_PARA_ENTREGA, new Color(72, 61, 139));
-        configurarBotaoStatus(btnEntregue,   StatusPedido.ENTREGUE,         new Color(34, 139, 34));
-        configurarBotaoStatus(btnCancelar,   StatusPedido.CANCELADO,        new Color(178, 34, 34));
+        configurarBotaoStatus(btnConfirmar,  "CONFIRMADO",       new Color(70, 130, 180));
+        configurarBotaoStatus(btnEmPreparo,  "EM_PREPARO",       new Color(255, 140, 0));
+        configurarBotaoStatus(btnSaiu,       "SAIU_PARA_ENTREGA", new Color(72, 61, 139));
+        configurarBotaoStatus(btnEntregue,   "ENTREGUE",         new Color(34, 139, 34));
+        configurarBotaoStatus(btnCancelar,   "CANCELADO",        new Color(178, 34, 34));
         botoes.add(btnConfirmar);
         botoes.add(btnEmPreparo);
         botoes.add(btnSaiu);
@@ -195,9 +193,9 @@ public class PainelGerenciarPedido extends JPanel {
         pedidosCache = controller.listarPedidos();
         modeloLista.clear();
         for (int i = 0; i < pedidosCache.size(); i++) {
-            Pedido p = pedidosCache.get(i);
+            PedidoResumoDTO p = pedidosCache.get(i);
             modeloLista.addElement(String.format("#%d %s [%s]",
-                    i + 1, p.getCliente().getNome(), p.getStatus().name()));
+                    i + 1, p.getNomeCliente(), p.getStatus()));
         }
     }
 
@@ -211,49 +209,49 @@ public class PainelGerenciarPedido extends JPanel {
     }
 
     private void exibirPedidoSelecionado() {
-        Pedido pedido = pedidoSelecionado();
+        PedidoResumoDTO pedido = pedidoSelecionado();
         if (pedido == null) {
             labelStatusAtual.setText("—");
             return;
         }
-        labelStatusAtual.setText(pedido.getStatus().name());
+        labelStatusAtual.setText(pedido.getStatus());
         atualizarBotoesStatus(pedido.getStatus());
-        areaResumo.setText(controller.apresentarPedido(pedido));
+        areaResumo.setText(controller.apresentarPedido(pedido.getId()));
         areaResumo.setCaretPosition(0);
     }
 
     private void calcularDescontos() {
-        Pedido pedido = pedidoSelecionadoComAviso();
+        PedidoResumoDTO pedido = pedidoSelecionadoComAviso();
         if (pedido == null) return;
         try {
-            controller.calcularDescontosEntrega(pedido);
-            areaResumo.setText(controller.apresentarPedido(pedido));
+            controller.calcularDescontosEntrega(pedido.getId());
+            areaResumo.setText(controller.apresentarPedido(pedido.getId()));
             areaLog.append(String.format("[DESCONTOS] Calculados para %s%n",
-                    pedido.getCliente().getNome()));
+                    pedido.getNomeCliente()));
         } catch (Exception ex) {
             exibirErro(ex);
         }
     }
 
     private void aplicarCupom() {
-        Pedido pedido = pedidoSelecionadoComAviso();
+        PedidoResumoDTO pedido = pedidoSelecionadoComAviso();
         if (pedido == null) return;
         String codigo = campoCupom.getText().trim();
         try {
-            controller.aplicarCupom(pedido, codigo, LocalDateTime.now());
-            areaResumo.setText(controller.apresentarPedido(pedido));
+            controller.aplicarCupom(pedido.getId(), codigo, LocalDateTime.now());
+            areaResumo.setText(controller.apresentarPedido(pedido.getId()));
             areaLog.append(String.format("[CUPOM] %s aplicado em pedido de %s%n",
-                    codigo, pedido.getCliente().getNome()));
+                    codigo, pedido.getNomeCliente()));
         } catch (Exception ex) {
             exibirErro(ex);
         }
     }
 
-    private void avancarStatus(StatusPedido novoStatus) {
-        Pedido pedido = pedidoSelecionadoComAviso();
+    private void avancarStatus(String novoStatus) {
+        PedidoResumoDTO pedido = pedidoSelecionadoComAviso();
         if (pedido == null) return;
         try {
-            controller.atualizarStatus(pedido, novoStatus);
+            controller.atualizarStatus(pedido.getId(), novoStatus);
             // A notificacao via NotificacaoSwing ja atualiza o log e a lista
             exibirPedidoSelecionado();
         } catch (IllegalStateException ex) {
@@ -265,7 +263,7 @@ public class PainelGerenciarPedido extends JPanel {
     // Helpers
     // -------------------------------------------------------------------------
 
-    private void configurarBotaoStatus(JButton btn, StatusPedido alvo, Color cor) {
+    private void configurarBotaoStatus(JButton btn, String alvo, Color cor) {
         btn.setBackground(cor);
         btn.setForeground(Color.WHITE);
         btn.setOpaque(true);
@@ -275,21 +273,23 @@ public class PainelGerenciarPedido extends JPanel {
         btn.addActionListener(e -> avancarStatus(alvo));
     }
 
-    private void atualizarBotoesStatus(StatusPedido atual) {
-        btnConfirmar.setEnabled(atual.podeTransicionarPara(StatusPedido.CONFIRMADO));
-        btnEmPreparo.setEnabled(atual.podeTransicionarPara(StatusPedido.EM_PREPARO));
-        btnSaiu.setEnabled(atual.podeTransicionarPara(StatusPedido.SAIU_PARA_ENTREGA));
-        btnEntregue.setEnabled(atual.podeTransicionarPara(StatusPedido.ENTREGUE));
-        btnCancelar.setEnabled(atual.podeTransicionarPara(StatusPedido.CANCELADO));
+    private void atualizarBotoesStatus(String atual) {
+        // UI sem conhecimento do Domain: sempre permite tentar
+        // Domain lança IllegalStateException que será mostrado ao usuario
+        btnConfirmar.setEnabled(true);
+        btnEmPreparo.setEnabled(true);
+        btnSaiu.setEnabled(true);
+        btnEntregue.setEnabled(true);
+        btnCancelar.setEnabled(true);
     }
 
-    private Pedido pedidoSelecionado() {
+    private PedidoResumoDTO pedidoSelecionado() {
         int idx = listaPedidos.getSelectedIndex();
         return (idx >= 0 && idx < pedidosCache.size()) ? pedidosCache.get(idx) : null;
     }
 
-    private Pedido pedidoSelecionadoComAviso() {
-        Pedido p = pedidoSelecionado();
+    private PedidoResumoDTO pedidoSelecionadoComAviso() {
+        PedidoResumoDTO p = pedidoSelecionado();
         if (p == null) {
             JOptionPane.showMessageDialog(this,
                     "Selecione um pedido na lista.", "Aviso", JOptionPane.WARNING_MESSAGE);

@@ -6,8 +6,10 @@ import java.util.Collections;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.UUID;
 
 public class Pedido {
+    private final String id;
     private double taxaEntrega;
     private List<Item> itens = new ArrayList<>();
     private Cliente cliente;
@@ -30,9 +32,14 @@ public class Pedido {
             throw new IllegalArgumentException("Taxa de entrega nao pode ser negativa");
         }
 
+        this.id = UUID.randomUUID().toString();
         this.cliente = cliente;
         this.data = data;
         this.taxaEntrega = taxaEntrega;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public void adicionarItem(Item objeto) {

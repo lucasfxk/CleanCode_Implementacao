@@ -20,6 +20,13 @@ public class PedidoRepositoryEmMemoria implements PedidoRepositoryOutputPort {
     }
 
     @Override
+    public Optional<Pedido> buscarPorId(String id) {
+        return pedidos.stream()
+                .filter(p -> p.getId().equals(id))
+                .findFirst();
+    }
+
+    @Override
     public Optional<Pedido> buscarPorData(LocalDateTime data) {
         return pedidos.stream()
                 .filter(p -> p.getData().equals(data))

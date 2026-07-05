@@ -1,6 +1,5 @@
 package com.ufes.delivery.domain.entity;
 
-import com.ufes.delivery.domain.entity.StatusPedido;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,6 +35,47 @@ public class Pedido {
         this.cliente = cliente;
         this.data = data;
         this.taxaEntrega = taxaEntrega;
+    }
+
+    private Pedido(String id, LocalDateTime data, Cliente cliente, double taxaEntrega,
+                   StatusPedido status, List<Item> itens,
+                   List<CupomDescontoEntrega> cuponsDescontoEntrega,
+                   CupomDescontoPedido cupomPedidoAplicado) {
+        this.id = id;
+        this.data = data;
+        this.cliente = cliente;
+        this.taxaEntrega = taxaEntrega;
+        this.status = status;
+        this.itens = new ArrayList<>(itens);
+        this.cuponsDescontoEntrega = new ArrayList<>(cuponsDescontoEntrega);
+        this.cupomPedidoAplicado = cupomPedidoAplicado;
+    }
+
+    public static Pedido reconstruir(String id, LocalDateTime data, Cliente cliente,
+                                      double taxaEntrega, StatusPedido status,
+                                      List<Item> itens,
+                                      List<CupomDescontoEntrega> cuponsDescontoEntrega,
+                                      CupomDescontoPedido cupomPedidoAplicado) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("Id do pedido deve ser informado para reconstrucao");
+        }
+        if (data == null) {
+            throw new IllegalArgumentException("Data do pedido deve ser informada");
+        }
+        if (cliente == null) {
+            throw new IllegalArgumentException("Cliente do pedido deve ser informado");
+        }
+        if (taxaEntrega < 0) {
+            throw new IllegalArgumentException("Taxa de entrega nao pode ser negativa");
+        }
+        if (status == null) {
+            throw new IllegalArgumentException("Status do pedido deve ser informado");
+        }
+
+        return new Pedido(id, data, cliente, taxaEntrega, status,
+                itens == null ? List.of() : itens,
+                cuponsDescontoEntrega == null ? List.of() : cuponsDescontoEntrega,
+                cupomPedidoAplicado);
     }
 
     public String getId() {
@@ -149,10 +189,6 @@ public class Pedido {
         return status;
     }
 
-    /**
-     * Atualiza o status do pedido respeitando as transicoes validas.
-     * Regra de negocio encapsulada no Domain — Clean Architecture.
-     */
     public void atualizarStatus(StatusPedido novoStatus) {
         if (novoStatus == null) {
             throw new IllegalArgumentException("Novo status nao pode ser nulo");

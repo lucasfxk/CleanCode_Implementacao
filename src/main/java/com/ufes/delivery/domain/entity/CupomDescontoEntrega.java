@@ -18,6 +18,23 @@ public class CupomDescontoEntrega {
         this.valorDesconto = valorDesconto;
     }
 
+    private CupomDescontoEntrega(String nomeMetodo, double valorDesconto, boolean aplicado) {
+        this.nomeMetodo = nomeMetodo;
+        this.valorDesconto = valorDesconto;
+        this.aplicado = aplicado;
+    }
+
+    public static CupomDescontoEntrega reconstruir(String nomeMetodo, double valorDesconto, boolean aplicado) {
+        if (nomeMetodo == null || nomeMetodo.isBlank()) {
+            throw new IllegalArgumentException("Nome do metodo de desconto nao pode ser vazio");
+        }
+        if (valorDesconto < 0) {
+            throw new IllegalArgumentException("Desconto na taxa de entrega nao pode ser negativo");
+        }
+
+        return new CupomDescontoEntrega(nomeMetodo, valorDesconto, aplicado);
+    }
+
     public double getValorDesconto() {
         return valorDesconto;
     }

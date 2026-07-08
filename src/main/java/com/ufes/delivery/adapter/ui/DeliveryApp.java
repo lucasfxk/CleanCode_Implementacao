@@ -1,5 +1,6 @@
 package com.ufes.delivery.adapter.ui;
 
+import com.ufes.delivery.adapter.controller.ItemController;
 import com.ufes.delivery.adapter.controller.PedidoController;
 import com.ufes.delivery.application.dto.PedidoResumoDTO;
 
@@ -20,7 +21,7 @@ public class DeliveryApp extends JFrame {
 
     private final PainelGerenciarPedido painelGerenciar;
 
-    public DeliveryApp(PedidoController controller) {
+    public DeliveryApp(PedidoController controller, ItemController itemController) {
         super("Sistema de Delivery — Clean Architecture | UFES 2026-1");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 700);
@@ -29,7 +30,7 @@ public class DeliveryApp extends JFrame {
 
         painelGerenciar = new PainelGerenciarPedido(controller);
 
-        PainelNovoPedido painelNovo = new PainelNovoPedido(controller, this::aoCriarPedido);
+        PainelNovoPedido painelNovo = new PainelNovoPedido(controller, itemController, this::aoCriarPedido);
 
         JTabbedPane abas = new JTabbedPane();
         abas.addTab("📋  Novo Pedido",   null, painelNovo,       "Cria um novo pedido de delivery");

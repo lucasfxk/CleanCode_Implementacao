@@ -2,6 +2,7 @@ package com.ufes.delivery.application.usecase;
 
 import com.ufes.delivery.application.port.in.AplicarCupomInputPort;
 import com.ufes.delivery.application.port.out.CupomRepositoryOutputPort;
+import com.ufes.delivery.application.port.out.PedidoRepositoryOutputPort;
 import com.ufes.delivery.domain.entity.CupomDescontoPedido;
 import com.ufes.delivery.domain.entity.Pedido;
 
@@ -11,15 +12,20 @@ import java.util.Optional;
 
 public class AplicarCupomUseCase implements AplicarCupomInputPort {
     private final CupomRepositoryOutputPort cupomRepository;
+    private final PedidoRepositoryOutputPort pedidoRepository;
 
-    public AplicarCupomUseCase(CupomRepositoryOutputPort cupomRepository) {
+    public AplicarCupomUseCase(CupomRepositoryOutputPort cupomRepository, PedidoRepositoryOutputPort pedidoRepository) {
         this.cupomRepository = Objects.requireNonNull(cupomRepository, "Repositorio de cupons nao pode ser nulo");
+        this.pedidoRepository = Objects.requireNonNull(pedidoRepository, "Repositorio de pedidos nao pode ser nulo");
     }
 
     @Override
-    public void executar(Pedido pedido, String codigoCupom, LocalDateTime dataHoraAplicacao) {
-        Objects.requireNonNull(pedido, "Pedido nao pode ser nulo");
+    public void executar(String pedidoId, String codigoCupom, LocalDateTime dataHoraAplicacao) {
+        Objects.requireNonNull(pedidoId, "ID do pedido nao pode ser nulo");
         Objects.requireNonNull(dataHoraAplicacao, "Data e hora de aplicacao nao podem ser nulas");
+
+        Pedido pedido = pedidoRepository.buscarPorId(pedidoId)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido nao encontrado: " + pedidoId));
 
         if (codigoCupom == null || codigoCupom.isBlank()) {
             throw new IllegalArgumentException("Codigo do cupom nao pode ser vazio");
@@ -48,5 +54,7 @@ public class AplicarCupomUseCase implements AplicarCupomInputPort {
         }
 
         pedido.setCupomAplicado(cupom);
+
+        pedidoRepository.salvar(pedido);
     }
 }

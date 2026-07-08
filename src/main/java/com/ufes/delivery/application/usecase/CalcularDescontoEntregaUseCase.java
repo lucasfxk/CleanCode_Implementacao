@@ -1,6 +1,7 @@
 package com.ufes.delivery.application.usecase;
 
 import com.ufes.delivery.application.port.in.CalcularDescontoEntregaInputPort;
+import com.ufes.delivery.application.port.out.PedidoRepositoryOutputPort;
 import com.ufes.delivery.application.strategy.IFormaDescontoTaxaEntrega;
 import com.ufes.delivery.domain.entity.CupomDescontoEntrega;
 import com.ufes.delivery.domain.entity.Pedido;
@@ -10,15 +11,20 @@ import java.util.Objects;
 
 public class CalcularDescontoEntregaUseCase implements CalcularDescontoEntregaInputPort {
     private final List<IFormaDescontoTaxaEntrega> metodosDeDesconto;
+    private final PedidoRepositoryOutputPort pedidoRepository;
 
-    public CalcularDescontoEntregaUseCase(List<IFormaDescontoTaxaEntrega> metodosDeDesconto) {
+    public CalcularDescontoEntregaUseCase(List<IFormaDescontoTaxaEntrega> metodosDeDesconto, PedidoRepositoryOutputPort pedidoRepository) {
         this.metodosDeDesconto = Objects.requireNonNull(metodosDeDesconto,
                 "Lista de metodos de desconto nao pode ser nula");
+        this.pedidoRepository = Objects.requireNonNull(pedidoRepository, "Repositorio de pedidos nao pode ser nulo");
     }
 
     @Override
-    public void executar(Pedido pedido) {
-        Objects.requireNonNull(pedido, "Pedido nao pode ser nulo");
+    public void executar(String pedidoId) {
+        Objects.requireNonNull(pedidoId, "ID do pedido nao pode ser nulo");
+
+        Pedido pedido = pedidoRepository.buscarPorId(pedidoId)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido nao encontrado: " + pedidoId));
 
         pedido.limparCuponsDescontoEntrega();
 
@@ -38,5 +44,7 @@ public class CalcularDescontoEntregaUseCase implements CalcularDescontoEntregaIn
                 }
             }
         }
+
+        pedidoRepository.salvar(pedido);
     }
 }

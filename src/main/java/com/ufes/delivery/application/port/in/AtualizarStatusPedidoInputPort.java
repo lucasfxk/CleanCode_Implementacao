@@ -7,5 +7,5 @@ import com.ufes.delivery.domain.entity.StatusPedido;
  * Input Port para atualizacao de status de pedido.
  */
 public interface AtualizarStatusPedidoInputPort {
-    void executar(Pedido pedido, StatusPedido novoStatus);
+    void executar(String pedidoId, StatusPedido novoStatus);
 }

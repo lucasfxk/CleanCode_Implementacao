@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.ufes.delivery.application.usecase.AtualizarStatusPedidoUseCaseTest
--------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.033 s -- in com.ufes.delivery.application.usecase.AtualizarStatusPedidoUseCaseTest

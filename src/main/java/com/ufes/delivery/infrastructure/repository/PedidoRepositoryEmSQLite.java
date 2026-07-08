@@ -4,7 +4,7 @@
  */
 package com.ufes.delivery.infrastructure.repository;
 
-import com.ufes.delivery.application.port.out.ClienteRepositoryOutputPort;
+import com.ufes.delivery.application.port.out.CupomRepositoryOutputPort;
 import com.ufes.delivery.application.port.out.CupomRepositoryOutputPort;
 import com.ufes.delivery.application.port.out.PedidoRepositoryOutputPort;
 import com.ufes.delivery.domain.entity.Cliente;
@@ -31,14 +31,21 @@ import java.util.Optional;
 public class PedidoRepositoryEmSQLite implements PedidoRepositoryOutputPort {
 
     private final String url;
-    private final ClienteRepositoryOutputPort clienteRepository;
     private final CupomRepositoryOutputPort cupomPedidoRepository;
 
-    public PedidoRepositoryEmSQLite(ClienteRepositoryOutputPort clienteRepository,
-                                     CupomRepositoryOutputPort cupomPedidoRepository) {
+    public PedidoRepositoryEmSQLite(CupomRepositoryOutputPort cupomPedidoRepository) {
         this.url = "jdbc:sqlite:delivery.db";
-        this.clienteRepository = clienteRepository;
         this.cupomPedidoRepository = cupomPedidoRepository;
+
+        String sqlCliente = "CREATE TABLE IF NOT EXISTS tbCliente ("
+                + "id TEXT PRIMARY KEY,"
+                + "nome TEXT NOT NULL,"
+                + "tipo TEXT NOT NULL,"
+                + "fidelidade REAL NOT NULL,"
+                + "logradouro TEXT NOT NULL,"
+                + "bairro TEXT NOT NULL,"
+                + "cidade TEXT NOT NULL"
+                + ");";
 
         String sqlPedidos = "CREATE TABLE IF NOT EXISTS Pedidos ("
                 + "id TEXT PRIMARY KEY,"
@@ -71,6 +78,7 @@ public class PedidoRepositoryEmSQLite implements PedidoRepositoryOutputPort {
 
         try (var conn = DriverManager.getConnection(this.url); var stmt = conn.createStatement()) {
             stmt.execute("PRAGMA foreign_keys = ON;");
+            stmt.execute(sqlCliente);
             stmt.execute(sqlPedidos);
             stmt.execute(sqlItens);
             stmt.execute(sqlCuponsEntrega);
@@ -83,7 +91,15 @@ public class PedidoRepositoryEmSQLite implements PedidoRepositoryOutputPort {
     public void salvar(Pedido pedido) {
         validarPedido(pedido);
 
-        clienteRepository.salvar(pedido.getCliente());
+        String sqlUpsertCliente = "INSERT INTO tbCliente (id, nome, tipo, fidelidade, logradouro, bairro, cidade) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?) "
+                + "ON CONFLICT(id) DO UPDATE SET "
+                + "nome = excluded.nome, "
+                + "tipo = excluded.tipo, "
+                + "fidelidade = excluded.fidelidade, "
+                + "logradouro = excluded.logradouro, "
+                + "bairro = excluded.bairro, "
+                + "cidade = excluded.cidade";
 
         String sqlUpsertPedido = "INSERT INTO Pedidos (id, data, taxaEntrega, status, clienteId, cupomPedidoCodigo) "
                 + "VALUES (?, ?, ?, ?, ?, ?) "
@@ -97,6 +113,18 @@ public class PedidoRepositoryEmSQLite implements PedidoRepositoryOutputPort {
         try (var conn = DriverManager.getConnection(this.url)) {
             conn.setAutoCommit(false);
             try {
+                try (var stmtCliente = conn.prepareStatement(sqlUpsertCliente)) {
+                    Cliente c = pedido.getCliente();
+                    stmtCliente.setString(1, c.getId());
+                    stmtCliente.setString(2, c.getNome());
+                    stmtCliente.setString(3, c.getTipo());
+                    stmtCliente.setDouble(4, c.getFidelidade());
+                    stmtCliente.setString(5, c.getLogradouro());
+                    stmtCliente.setString(6, c.getBairro());
+                    stmtCliente.setString(7, c.getCidade());
+                    stmtCliente.executeUpdate();
+                }
+
                 try (var stmt = conn.prepareStatement(sqlUpsertPedido)) {
                     stmt.setString(1, pedido.getId());
                     stmt.setString(2, pedido.getData().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
@@ -236,9 +264,11 @@ public class PedidoRepositoryEmSQLite implements PedidoRepositoryOutputPort {
         String clienteId = rs.getString("clienteId");
         String cupomCodigo = rs.getString("cupomPedidoCodigo");
 
-        Cliente cliente = clienteRepository.buscarPorId(clienteId)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Cliente " + clienteId + " referenciado pelo pedido " + pedidoId + " nao foi encontrado"));
+        Cliente cliente = buscarCliente(conn, clienteId);
+        if (cliente == null) {
+            throw new IllegalStateException(
+                    "Cliente " + clienteId + " referenciado pelo pedido " + pedidoId + " nao foi encontrado");
+        }
 
         CupomDescontoPedido cupomAplicado = null;
         if (cupomCodigo != null) {
@@ -250,6 +280,26 @@ public class PedidoRepositoryEmSQLite implements PedidoRepositoryOutputPort {
 
         return Pedido.reconstruir(pedidoId, data, cliente, taxaEntrega, status,
                 itens, cuponsDescontoEntrega, cupomAplicado);
+    }
+
+    private Cliente buscarCliente(Connection conn, String clienteId) throws SQLException {
+        String sql = "SELECT id, nome, tipo, fidelidade, logradouro, bairro, cidade FROM tbCliente WHERE id = ?";
+        try (var stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, clienteId);
+            try (var rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return Cliente.reconstruir(
+                            rs.getString("id"),
+                            rs.getString("nome"),
+                            rs.getString("tipo"),
+                            rs.getDouble("fidelidade"),
+                            rs.getString("logradouro"),
+                            rs.getString("bairro"),
+                            rs.getString("cidade"));
+                }
+            }
+        }
+        return null;
     }
 
     private List<Item> carregarItens(Connection conn, String pedidoId) throws SQLException {

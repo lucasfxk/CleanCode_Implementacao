@@ -1,6 +1,9 @@
 package com.ufes.delivery.domain.entity;
 
+import java.util.UUID;
+
 public class Item {
+    private final String id;
     private String nome;
     private int quantidade;
     private double valorUnitario;
@@ -18,14 +21,34 @@ public class Item {
             throw new IllegalArgumentException("Valor unitario do item nao pode ser negativo");
         }
 
+        this.id = UUID.randomUUID().toString();
         this.nome = nome;
         this.quantidade = quantidade;
         this.valorUnitario = valorUnitario;
         this.tipo = tipo;
     }
 
+    private Item(String id, String nome, int quantidade, double valorUnitario, String tipo) {
+        this.id = id;
+        this.nome = nome;
+        this.quantidade = quantidade;
+        this.valorUnitario = valorUnitario;
+        this.tipo = tipo;
+    }
+
+    public static Item reconstruir(String id, String nome, int quantidade, double valorUnitario, String tipo) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("Id do item deve ser informado para reconstrucao");
+        }
+        return new Item(id, nome, quantidade, valorUnitario, tipo);
+    }
+
     public double valorTotal() {
         return valorUnitario * quantidade;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public String getNome() {

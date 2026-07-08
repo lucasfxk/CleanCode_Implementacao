@@ -4,13 +4,13 @@
 
 ### Descrição
 
-Implementação de um **Sistema de Delivery** seguindo os princípios da **Clean Architecture** (Robert C. Martin). O sistema gerencia o ciclo de vida completo de pedidos: criação, cálculo de descontos, aplicação de cupons, acompanhamento de status com notificações em tempo real.
+Implementação de um **Sistema de Delivery** seguindo os princípios da **Clean Architecture** (Robert C. Martin). O sistema gerencia o ciclo de vida completo de pedidos e agora conta com um **Catálogo de Itens** persistido em banco de dados SQLite. Entre as funcionalidades estão: criação de pedidos, cálculo de descontos, aplicação de cupons, acompanhamento de status com notificações em tempo real e gerenciamento de um catálogo base de produtos.
 
 ### Arquitetura
 
 O projeto segue a **Dependency Rule**: dependências sempre apontam para dentro (em direção ao domínio).
 
-```
+```text
 Infrastructure → Adapter → Application (Use Cases / Ports) → Domain (Entities)
 ```
 
@@ -18,68 +18,71 @@ Infrastructure → Adapter → Application (Use Cases / Ports) → Domain (Entit
 
 | Camada | Pacote | Responsabilidade |
 |--------|--------|-----------------|
-| **Domain** | `domain.entity` | Entidades puras de negócio: `Pedido` (com UUID), `Cliente`, `Item`, `Cupom*`, `StatusPedido` |
-| **Application** | `application.usecase`, `application.port`, `application.dto`, `application.strategy` | Use Cases, Input/Output Ports, DTOs (`PedidoResumoDTO` com UUID), estratégias de desconto |
-| **Adapter** | `adapter.controller`, `adapter.presenter`, `adapter.ui` | Controladores (`PedidoController` via IDs), `PedidoPresenter` implementando `PresenterOutputPort`, Interface Gráfica isolada do Domain |
-| **Infrastructure** | `infrastructure.repository`, `infrastructure.notification`, `infrastructure.config` | Repositórios em memória com busca por ID, notificações e configuração |
+| **Domain** | `domain.entity` | Entidades puras de negócio: `Pedido`, `Cliente`, `Item` (agora com UUID), `Cupom*`, `StatusPedido` |
+| **Application** | `application.usecase`, `application.port`, `application.dto`, `application.strategy` | Use Cases (incluindo `CadastrarItemUseCase` e `ListarItensUseCase`), Input/Output Ports, DTOs, estratégias de desconto |
+| **Adapter** | `adapter.controller`, `adapter.presenter`, `adapter.ui` | Controladores (`PedidoController` e `ItemController`), `PedidoPresenter`, Interface Gráfica isolada do Domain |
+| **Infrastructure** | `infrastructure.repository`, `infrastructure.notification`, `infrastructure.config` | Banco de Dados em **SQLite** (`PedidoRepositoryEmSQLite`, `ItemRepositoryEmSQLite`), Repositórios em Memória (para flexibilidade e testes), notificações e configuração |
 
 ### Princípios SOLID Aplicados
 
 | Princípio | Aplicação |
 |-----------|-----------|
-| **S** — Single Responsibility | Cada classe tem uma única responsabilidade (ex: `PedidoPresenter` só formata, UI só exibe DTOs) |
-| **O** — Open/Closed | Novas estratégias de desconto (`IFormaDescontoTaxaEntrega`) adicionadas sem alterar código existente |
-| **L** — Liskov Substitution | Implementações de `IFormaDescontoTaxaEntrega` e `NotificacaoOutputPort` são intercambiáveis |
-| **I** — Interface Segregation | Input Ports e Output Ports segregados (ex: `PresenterOutputPort`, `PedidoRepositoryOutputPort`) |
-| **D** — Dependency Inversion | Controllers e Use Cases dependem de abstrações (ports), a UI não conhece Entidades |
+| **S** — Single Responsibility | Cada classe tem uma única responsabilidade (ex: `PedidoPresenter` só formata, UI só exibe DTOs). |
+| **O** — Open/Closed | Novas estratégias de desconto (`IFormaDescontoTaxaEntrega`) adicionadas sem alterar código existente. |
+| **L** — Liskov Substitution | Implementações de repositórios (SQLite vs Memória) e notificações são totalmente intercambiáveis. |
+| **I** — Interface Segregation | Input Ports e Output Ports segregados para Casos de Uso específicos e Repositórios distintos. |
+| **D** — Dependency Inversion | Controllers e Use Cases dependem de abstrações (ports). A Injeção é feita no Composition Root (`MainSwing`). |
 
 ### Padrões de Projeto
 
 | Padrão | Onde | Por quê |
 |--------|------|---------|
-| **Strategy** | `IFormaDescontoTaxaEntrega` e suas 4 implementações | Permite variar algoritmos de desconto sem alterar o Use Case |
-| **Observer** | `NotificacaoOutputPort` / `NotificacaoConsole` / `NotificacaoSwing` | Desacopla a notificação do Use Case |
-| **Repository** | `PedidoRepositoryOutputPort`, `CupomRepositoryOutputPort` | Abstrai a persistência (agora com `buscarPorId`) |
-| **DTO** | `CriarPedidoDTO`, `ItemDTO`, `PedidoResumoDTO` | Transferência de dados, isolando a UI (Adapter) do Domain |
-| **Dependency Injection** | `Main.java` e `MainSwing.java` (Composition Root) | Monta toda a árvore de dependências |
-| **Facade** | `PedidoController` | Simplifica o acesso aos use cases, recebendo apenas IDs e DTOs |
+| **Strategy** | `IFormaDescontoTaxaEntrega` | Permite variar algoritmos de desconto sem alterar o Use Case. |
+| **Observer** | `NotificacaoOutputPort` | Desacopla as atualizações (UI/Console) da regra de negócio (Use Case). |
+| **Repository** | Output Ports de Repositório | Abstrai a persistência, permitindo trocar Memória por Banco de Dados SQLite de forma invisível para o domínio. |
+| **DTO** | `CriarPedidoDTO`, `ItemDTO`, `PedidoResumoDTO` | Transferência de dados segura, blindando a UI para que ela não acesse Entidades de Domínio. |
+| **Dependency Injection** | `MainSwing.java` e `Main.java` | Monta toda a árvore de dependências no ponto mais externo (Composition Root). |
+| **Facade** | `PedidoController` e `ItemController` | Simplificam o acesso da interface aos casos de uso. |
+
+### Destaques da Implementação
+
+- **Catálogo de Itens (SQLite):** Ao iniciar o sistema, um catálogo de produtos pré-cadastrados é carregado do SQLite e disponibilizado na UI. O usuário pode adicionar os itens do catálogo direto para o carrinho ou cadastrar novos itens permanentemente.
+- **Auto-Load de Pedidos:** A interface consulta automaticamente o repositório ao abrir e exibe os pedidos em uma `JTable`.
+- **Transparência de Banco de Dados:** É possível trocar facilmente o SQLite (`ItemRepositoryEmSQLite`) por memória RAM (`ItemRepositoryEmMemoria`) alterando uma única linha no `MainSwing.java`, comprovando a eficácia da Clean Architecture.
 
 ### Fluxo da Aplicação
 
-```
+```text
 1. Criação do Pedido     → UI envia DTO → CriarPedidoUseCase → UI recebe DTO
 2. Cálculo de Descontos  → UI envia UUID → BuscarPedidoUseCase → CalcularDescontoEntregaUseCase
 3. Aplicação de Cupom    → UI envia UUID → BuscarPedidoUseCase → AplicarCupomUseCase
 4. Ciclo de Status       → UI envia UUID → BuscarPedidoUseCase → AtualizarStatusPedidoUseCase
-   CRIADO → CONFIRMADO → EM_PREPARO → SAIU_PARA_ENTREGA → ENTREGUE
-                       ↘ CANCELADO (a partir de CRIADO ou CONFIRMADO)
-5. Listagem              → BuscarPedidoUseCase → UI recebe List<PedidoResumoDTO>
+5. Catálogo de Itens     → UI ↔ ItemController ↔ CadastrarItemUseCase / ListarItensUseCase ↔ Repositório
 ```
 
 ### Interface Gráfica (MVP Swing)
 
-O projeto inclui uma interface gráfica Swing (`MainSwing.java`) que demonstra a arquitetura visualmente. 
-A UI fica **exclusivamente** na camada Adapter e **não importa nenhuma entidade do Domain**.
+O projeto inclui uma interface gráfica Swing completa. O código da UI fica **exclusivamente** na camada Adapter e **não importa nenhuma entidade do Domain**, validando arquiteturalmente o projeto.
 
 **Como executar a interface gráfica:**
-
 ```bash
-mvn exec:java -Dexec.mainClass="com.ufes.delivery.MainSwing"
+mvn compile exec:java@swing
 ```
 
-**Para executar o modo console (Main.java):**
+**Para executar o modo console (Main.java original):**
 ```bash
-mvn exec:java -Dexec.mainClass="com.ufes.delivery.Main"
+mvn compile exec:java
 ```
 
 ### Pré-requisitos
 
 - **Java 21** (JDK 21)
 - **Apache Maven 3.8+**
+- Drivers JDBC do SQLite (já configurado no `pom.xml`).
 
 ### Como Executar os Testes
 
-São incluídos testes automatizados validando o agregado raiz `Pedido`, os Use Cases principais e as estratégias (Strategy) de desconto.
+O projeto contém testes automatizados (JUnit 5) validando regras de negócios vitais (Agregado raiz de Pedido, Use Cases e estratégias de desconto).
 ```bash
-mvn test
+mvn clean test
 ```

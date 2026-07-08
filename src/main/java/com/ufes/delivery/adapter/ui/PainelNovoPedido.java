@@ -1,5 +1,6 @@
 package com.ufes.delivery.adapter.ui;
 
+import com.ufes.delivery.adapter.controller.ItemController;
 import com.ufes.delivery.adapter.controller.PedidoController;
 import com.ufes.delivery.application.dto.CriarPedidoDTO;
 import com.ufes.delivery.application.dto.ItemDTO;
@@ -34,12 +35,19 @@ public class PainelNovoPedido extends JPanel {
             new String[]{"Centro", "Bela Vista", "Cidade Maravilhosa", "Jardim", "Norte", "Sul"});
     private final JTextField campoCidade      = new JTextField(10);
 
-    // --- Tabela de itens ---
+    // --- Tabela de itens (Carrinho) ---
     private final DefaultTableModel modeloItens = new DefaultTableModel(
             new String[]{"Nome", "Qtd", "Valor Unit. (R$)", "Tipo"}, 0) {
         @Override public boolean isCellEditable(int r, int c) { return false; }
     };
     private final JTable tabelaItens = new JTable(modeloItens);
+
+    // --- Tabela de itens (Catálogo) ---
+    private final DefaultTableModel modeloCatalogo = new DefaultTableModel(
+            new String[]{"ID", "Nome", "Valor (R$)", "Tipo"}, 0) {
+        @Override public boolean isCellEditable(int r, int c) { return false; }
+    };
+    private final JTable tabelaCatalogo = new JTable(modeloCatalogo);
 
     // --- Campos de novo item ---
     private final JTextField campoItemNome  = new JTextField(10);
@@ -49,14 +57,17 @@ public class PainelNovoPedido extends JPanel {
             new String[]{"Alimentacao", "Educacao", "Lazer", "Higiene", "Eletronico"});
 
     private final PedidoController controller;
+    private final ItemController itemController;
     private final Consumer<PedidoResumoDTO> aocriarPedido;
 
     /**
      * @param controller    controlador existente (Adapter)
+     * @param itemController controlador de itens (Catálogo)
      * @param aocriarPedido callback invocado quando um pedido e criado com sucesso
      */
-    public PainelNovoPedido(PedidoController controller, Consumer<PedidoResumoDTO> aocriarPedido) {
+    public PainelNovoPedido(PedidoController controller, ItemController itemController, Consumer<PedidoResumoDTO> aocriarPedido) {
         this.controller   = controller;
+        this.itemController = itemController;
         this.aocriarPedido = aocriarPedido;
         setLayout(new BorderLayout(8, 8));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
@@ -64,6 +75,7 @@ public class PainelNovoPedido extends JPanel {
         add(construirPainelItens(),   BorderLayout.CENTER);
         add(construirBotaoCriar(),    BorderLayout.SOUTH);
         preencherDadosExemplo();
+        carregarCatalogo();
     }
 
     // -------------------------------------------------------------------------
@@ -87,31 +99,51 @@ public class PainelNovoPedido extends JPanel {
     }
 
     private JPanel construirPainelItens() {
-        JPanel p = new JPanel(new BorderLayout(6, 6));
+        JPanel p = new JPanel(new GridLayout(1, 2, 8, 8));
         p.setBorder(titulado("Itens do Pedido"));
 
-        // Tabela
+        // Catálogo (Esquerda)
+        JPanel pnlCatalogo = new JPanel(new BorderLayout(4, 4));
+        pnlCatalogo.setBorder(titulado("Catálogo de Itens Disponíveis"));
+        tabelaCatalogo.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        pnlCatalogo.add(new JScrollPane(tabelaCatalogo), BorderLayout.CENTER);
+
+        JPanel formAddCatalogo = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 4));
+        formAddCatalogo.add(new JLabel("Qtd:")); formAddCatalogo.add(spinnerQtd);
+        JButton btnAddDoCatalogo = new JButton(">> Adicionar ao Pedido");
+        btnAddDoCatalogo.addActionListener(e -> adicionarDoCatalogo());
+        formAddCatalogo.add(btnAddDoCatalogo);
+        pnlCatalogo.add(formAddCatalogo, BorderLayout.SOUTH);
+
+        // Carrinho (Direita)
+        JPanel pnlCarrinho = new JPanel(new BorderLayout(4, 4));
+        pnlCarrinho.setBorder(titulado("Itens no Pedido Atual"));
         tabelaItens.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        tabelaItens.getTableHeader().setReorderingAllowed(false);
-        p.add(new JScrollPane(tabelaItens), BorderLayout.CENTER);
+        pnlCarrinho.add(new JScrollPane(tabelaItens), BorderLayout.CENTER);
 
-        // Formulario de adicao de item
-        JPanel form = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        form.add(new JLabel("Nome:")); form.add(campoItemNome);
-        form.add(new JLabel("Qtd:"));  form.add(spinnerQtd);
-        form.add(new JLabel("R$:"));   form.add(spinnerValor);
-        form.add(new JLabel("Tipo:")); form.add(comboTipoItem);
-
-        JButton btnAdd = new JButton("+ Adicionar Item");
-        btnAdd.addActionListener(e -> adicionarItemNaTabela());
-        form.add(btnAdd);
-
-        JButton btnRem = new JButton("Remover");
+        JButton btnRem = new JButton("Remover do Pedido");
         btnRem.addActionListener(e -> removerItemSelecionado());
-        form.add(btnRem);
+        pnlCarrinho.add(btnRem, BorderLayout.SOUTH);
 
-        p.add(form, BorderLayout.SOUTH);
-        return p;
+        p.add(pnlCatalogo);
+        p.add(pnlCarrinho);
+
+        // Formulário para Cadastrar NOVO item no catálogo
+        JPanel formNovoItem = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
+        formNovoItem.setBorder(titulado("Cadastrar Novo Item no Catálogo"));
+        formNovoItem.add(new JLabel("Nome:")); formNovoItem.add(campoItemNome);
+        formNovoItem.add(new JLabel("R$:"));   formNovoItem.add(spinnerValor);
+        formNovoItem.add(new JLabel("Tipo:")); formNovoItem.add(comboTipoItem);
+
+        JButton btnSalvarCatalogo = new JButton("Salvar no Catálogo");
+        btnSalvarCatalogo.addActionListener(e -> salvarNoCatalogo());
+        formNovoItem.add(btnSalvarCatalogo);
+
+        JPanel pnlInferior = new JPanel(new BorderLayout());
+        pnlInferior.add(p, BorderLayout.CENTER);
+        pnlInferior.add(formNovoItem, BorderLayout.SOUTH);
+
+        return pnlInferior;
     }
 
     private JButton construirBotaoCriar() {
@@ -130,19 +162,56 @@ public class PainelNovoPedido extends JPanel {
     // Acoes
     // -------------------------------------------------------------------------
 
-    private void adicionarItemNaTabela() {
+    private void carregarCatalogo() {
+        modeloCatalogo.setRowCount(0);
+        List<ItemDTO> itens = itemController.listarTodos();
+        for (ItemDTO item : itens) {
+            modeloCatalogo.addRow(new Object[]{
+                    item.getId(),
+                    item.getNome(),
+                    String.format("%.2f", item.getValorUnitario()),
+                    item.getTipo()
+            });
+        }
+    }
+
+    private void salvarNoCatalogo() {
         String nome = campoItemNome.getText().trim();
         if (nome.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Informe o nome do item.", "Aviso", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        double valor = ((Number) spinnerValor.getValue()).doubleValue();
+        String tipo = (String) comboTipoItem.getSelectedItem();
+
+        try {
+            itemController.cadastrarItem(nome, valor, tipo);
+            carregarCatalogo();
+            campoItemNome.setText("");
+            JOptionPane.showMessageDialog(this, "Item cadastrado no catálogo!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Erro: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void adicionarDoCatalogo() {
+        int linha = tabelaCatalogo.getSelectedRow();
+        if (linha < 0) {
+            JOptionPane.showMessageDialog(this, "Selecione um item do catálogo para adicionar.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String nome = (String) modeloCatalogo.getValueAt(linha, 1);
+        String valorStr = (String) modeloCatalogo.getValueAt(linha, 2);
+        String tipo = (String) modeloCatalogo.getValueAt(linha, 3);
+        int qtd = (Integer) spinnerQtd.getValue();
+
         modeloItens.addRow(new Object[]{
                 nome,
-                spinnerQtd.getValue(),
-                String.format("%.2f", spinnerValor.getValue()),
-                comboTipoItem.getSelectedItem()
+                qtd,
+                valorStr,
+                tipo
         });
-        campoItemNome.setText("");
     }
 
     private void removerItemSelecionado() {
@@ -232,8 +301,12 @@ public class PainelNovoPedido extends JPanel {
         comboTipo.setSelectedItem("Ouro");
         spinnerFidelidade.setValue(3);
         comboBairro.setSelectedItem("Cidade Maravilhosa");
-        modeloItens.addRow(new Object[]{"Biscoito", 4, "5.80", "Alimentacao"});
-        modeloItens.addRow(new Object[]{"Livro",    1, "40.20", "Lazer"});
-        modeloItens.addRow(new Object[]{"Caderno",  2, "10.50", "Educacao"});
+        
+        // Cadastrar itens de exemplo no catálogo, se estiver vazio
+        if (itemController.listarTodos().isEmpty()) {
+            itemController.cadastrarItem("Biscoito", 5.80, "Alimentacao");
+            itemController.cadastrarItem("Livro", 40.20, "Lazer");
+            itemController.cadastrarItem("Caderno", 10.50, "Educacao");
+        }
     }
 }

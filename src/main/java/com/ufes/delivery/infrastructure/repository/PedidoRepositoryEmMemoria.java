@@ -16,6 +16,7 @@ public class PedidoRepositoryEmMemoria implements PedidoRepositoryOutputPort {
         if (pedido == null) {
             throw new IllegalArgumentException("Pedido nao pode ser nulo");
         }
+        pedidos.removeIf(p -> p.getId().equals(pedido.getId()));
         pedidos.add(pedido);
     }
 

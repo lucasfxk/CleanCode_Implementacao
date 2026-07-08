@@ -45,13 +45,11 @@ public class PedidoController {
     }
 
     public void calcularDescontosEntrega(String pedidoId) {
-        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
-        calcularDescontoEntregaUseCase.executar(pedido);
+        calcularDescontoEntregaUseCase.executar(pedidoId);
     }
 
     public void aplicarCupom(String pedidoId, String codigoCupom, LocalDateTime dataHoraAplicacao) {
-        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
-        aplicarCupomUseCase.executar(pedido, codigoCupom, dataHoraAplicacao);
+        aplicarCupomUseCase.executar(pedidoId, codigoCupom, dataHoraAplicacao);
     }
 
     public PedidoResumoDTO obterResumo(String pedidoId) {
@@ -65,9 +63,8 @@ public class PedidoController {
     }
 
     public void atualizarStatus(String pedidoId, String novoStatusStr) {
-        Pedido pedido = buscarPedidoUseCase.buscarPorId(pedidoId);
         StatusPedido novoStatus = StatusPedido.valueOf(novoStatusStr);
-        atualizarStatusUseCase.executar(pedido, novoStatus);
+        atualizarStatusUseCase.executar(pedidoId, novoStatus);
     }
 
     public List<PedidoResumoDTO> listarPedidos() {

@@ -5,6 +5,7 @@ import com.ufes.delivery.application.dto.PedidoResumoDTO;
 
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,9 +26,12 @@ public class PainelGerenciarPedido extends JPanel {
 
     private final PedidoController controller;
 
-    // --- Lista de pedidos ---
-    private final DefaultListModel<String> modeloLista = new DefaultListModel<>();
-    private final JList<String> listaPedidos = new JList<>(modeloLista);
+    // --- Tabela de pedidos ---
+    private final DefaultTableModel modeloTabela = new DefaultTableModel(
+            new String[]{"#", "Cliente", "Status", "Total"}, 0) {
+        @Override public boolean isCellEditable(int row, int column) { return false; }
+    };
+    private final JTable tabelaPedidos = new JTable(modeloTabela);
     private List<PedidoResumoDTO> pedidosCache = List.of();
 
     // --- Ações ---
@@ -51,6 +55,9 @@ public class PainelGerenciarPedido extends JPanel {
         add(construirPainelEsquerdo(), BorderLayout.WEST);
         add(construirPainelCentro(),   BorderLayout.CENTER);
         add(construirPainelLog(),      BorderLayout.SOUTH);
+
+        // Auto-load de pedidos na inicialização
+        atualizarListaPedidos();
     }
 
     // -------------------------------------------------------------------------
@@ -59,14 +66,14 @@ public class PainelGerenciarPedido extends JPanel {
 
     private JPanel construirPainelEsquerdo() {
         JPanel p = new JPanel(new BorderLayout(6, 6));
-        p.setPreferredSize(new Dimension(220, 0));
-        p.setBorder(titulado("Pedidos"));
+        p.setPreferredSize(new Dimension(320, 0));
+        p.setBorder(titulado("Pedidos Salvos"));
 
-        listaPedidos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        listaPedidos.addListSelectionListener(e -> {
+        tabelaPedidos.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tabelaPedidos.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) exibirPedidoSelecionado();
         });
-        p.add(new JScrollPane(listaPedidos), BorderLayout.CENTER);
+        p.add(new JScrollPane(tabelaPedidos), BorderLayout.CENTER);
 
         JButton btnAtualizar = new JButton("↺ Atualizar lista");
         btnAtualizar.addActionListener(e -> atualizarListaPedidos());
@@ -191,11 +198,11 @@ public class PainelGerenciarPedido extends JPanel {
 
     public void atualizarListaPedidos() {
         pedidosCache = controller.listarPedidos();
-        modeloLista.clear();
+        modeloTabela.setRowCount(0);
         for (int i = 0; i < pedidosCache.size(); i++) {
             PedidoResumoDTO p = pedidosCache.get(i);
-            modeloLista.addElement(String.format("#%d %s [%s]",
-                    i + 1, p.getNomeCliente(), p.getStatus()));
+            String totalFormatado = String.format("R$ %.2f", p.getValorTotal());
+            modeloTabela.addRow(new Object[]{ i + 1, p.getNomeCliente(), p.getStatus(), totalFormatado });
         }
     }
 
@@ -284,7 +291,7 @@ public class PainelGerenciarPedido extends JPanel {
     }
 
     private PedidoResumoDTO pedidoSelecionado() {
-        int idx = listaPedidos.getSelectedIndex();
+        int idx = tabelaPedidos.getSelectedRow();
         return (idx >= 0 && idx < pedidosCache.size()) ? pedidosCache.get(idx) : null;
     }
 

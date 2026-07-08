@@ -1,5 +1,6 @@
 package com.ufes.delivery;
 
+import com.ufes.delivery.adapter.controller.ItemController;
 import com.ufes.delivery.adapter.controller.PedidoController;
 import com.ufes.delivery.adapter.presenter.PedidoPresenter;
 import com.ufes.delivery.adapter.ui.DeliveryApp;
@@ -10,8 +11,10 @@ import com.ufes.delivery.application.strategy.*;
 import com.ufes.delivery.application.usecase.*;
 import com.ufes.delivery.domain.entity.CupomDescontoPedido;
 import com.ufes.delivery.infrastructure.config.ConfiguracaoService;
+import com.ufes.delivery.infrastructure.repository.ItemRepositoryEmSQLite;
 import com.ufes.delivery.infrastructure.repository.CupomRepositoryEmMemoria;
 import com.ufes.delivery.infrastructure.repository.PedidoRepositoryEmMemoria;
+import com.ufes.delivery.infrastructure.repository.PedidoRepositoryEmSQLite;
 
 import javax.swing.*;
 import java.time.LocalDateTime;
@@ -44,7 +47,9 @@ public class MainSwing {
         // 1. INFRASTRUCTURE
         // =================================================================
         CupomRepositoryEmMemoria cupomRepositoryConcrete = new CupomRepositoryEmMemoria();
-        PedidoRepositoryOutputPort pedidoRepository      = new PedidoRepositoryEmMemoria();
+        PedidoRepositoryOutputPort pedidoRepository      = new PedidoRepositoryEmSQLite(cupomRepositoryConcrete);
+        ItemRepositoryOutputPort itemRepository          = new ItemRepositoryEmSQLite();
+        
 
         LocalDateTime agora = LocalDateTime.now();
         cupomRepositoryConcrete.adicionarCupom(
@@ -72,10 +77,10 @@ public class MainSwing {
                 new CriarPedidoUseCase(pedidoRepository, taxa);
 
         CalcularDescontoEntregaInputPort calcularDesconto =
-                new CalcularDescontoEntregaUseCase(estrategias);
+                new CalcularDescontoEntregaUseCase(estrategias, pedidoRepository);
 
         AplicarCupomInputPort aplicarCupom =
-                new AplicarCupomUseCase(cupomRepository);
+                new AplicarCupomUseCase(cupomRepository, pedidoRepository);
 
         BuscarPedidoInputPort buscarPedido =
                 new BuscarPedidoUseCase(pedidoRepository);
@@ -98,7 +103,7 @@ public class MainSwing {
         );
 
         AtualizarStatusPedidoInputPort atualizarStatus =
-                new AtualizarStatusPedidoUseCase(notificacao);
+                new AtualizarStatusPedidoUseCase(notificacao, pedidoRepository);
 
         PedidoController controller = new PedidoController(
                 criarPedido,
@@ -109,10 +114,15 @@ public class MainSwing {
                 presenter
         );
 
+        ItemController itemController = new ItemController(
+                new CadastrarItemUseCase(itemRepository),
+                new ListarItensUseCase(itemRepository)
+        );
+
         // =================================================================
-        // 5. ADAPTER UI — abre a janela
+        // 4. UI (ADAPTER)
         // =================================================================
-        appRef[0] = new DeliveryApp(controller);
+        appRef[0] = new DeliveryApp(controller, itemController);
     }
 
     private static void configurarLookAndFeel() {

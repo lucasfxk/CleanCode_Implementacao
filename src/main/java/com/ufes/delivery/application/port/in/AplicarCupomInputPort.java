@@ -4,5 +4,5 @@ import com.ufes.delivery.domain.entity.Pedido;
 import java.time.LocalDateTime;
 
 public interface AplicarCupomInputPort {
-    void executar(Pedido pedido, String codigoCupom, LocalDateTime dataHoraAplicacao);
+    void executar(String pedidoId, String codigoCupom, LocalDateTime dataHoraAplicacao);
 }

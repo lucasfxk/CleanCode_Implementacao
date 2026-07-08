@@ -54,6 +54,7 @@ com\ufes\delivery\application\port\in\AplicarCupomInputPort.class
 com\ufes\delivery\infrastructure\repository\PedidoRepositoryEmMemoria.class
 com\ufes\delivery\adapter\ui\PainelGerenciarPedido$1.class
 com\ufes\delivery\application\port\in\CriarPedidoInputPort.class
+com\ufes\delivery\adapter\controller\PedidoWebController.class
 com\ufes\delivery\application\usecase\CadastrarItemUseCase.class
 com\ufes\delivery\application\usecase\ListarItensUseCase.class
 com\ufes\delivery\domain\entity\state\EstadoPedidoFactory$1.class

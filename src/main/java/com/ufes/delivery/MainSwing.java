@@ -1,7 +1,9 @@
 package com.ufes.delivery;
 
+import com.sun.net.httpserver.HttpServer;
 import com.ufes.delivery.adapter.controller.ItemController;
 import com.ufes.delivery.adapter.controller.PedidoController;
+import com.ufes.delivery.adapter.controller.PedidoWebController;
 import com.ufes.delivery.adapter.presenter.PedidoPresenter;
 import com.ufes.delivery.adapter.ui.DeliveryApp;
 import com.ufes.delivery.adapter.ui.NotificacaoSwing;
@@ -17,9 +19,12 @@ import com.ufes.delivery.infrastructure.repository.PedidoRepositoryEmMemoria;
 import com.ufes.delivery.infrastructure.repository.PedidoRepositoryEmSQLite;
 
 import javax.swing.*;
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 /**
  * Ponto de entrada da interface grafica — Composition Root (Swing).
@@ -123,6 +128,19 @@ public class MainSwing {
         // 4. UI (ADAPTER)
         // =================================================================
         appRef[0] = new DeliveryApp(controller, itemController);
+
+        // =================================================================
+        // 5. WEB API (ADAPTER SIMULTANEO)
+        // =================================================================
+        try {
+            HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+            server.createContext("/pedidos", new PedidoWebController(buscarPedido, presenter));
+            server.setExecutor(Executors.newCachedThreadPool());
+            server.start();
+            System.out.println("Servidor Web (API REST) rodando simultaneamente em http://localhost:8080/pedidos");
+        } catch (IOException e) {
+            System.err.println("Nao foi possivel iniciar a API Web: " + e.getMessage());
+        }
     }
 
     private static void configurarLookAndFeel() {

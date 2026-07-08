@@ -47,6 +47,7 @@ Infrastructure → Adapter → Application (Use Cases / Ports) → Domain (Entit
 
 ### Destaques da Implementação
 
+- **Multi-Interface Simultânea (Swing + Web API):** O projeto sobe automaticamente uma janela Desktop (Swing) E um Servidor Web (na porta 8080) simultaneamente. Ambos consomem 100% dos mesmos Use Cases, provando que o Core da aplicação é agnóstico ao canal de entrada/saída. Basta acessar `http://localhost:8080/pedidos` com o sistema rodando.
 - **Padrão State Puro:** O ciclo de vida do pedido foi modelado utilizando o Padrão State Clássico do GoF, garantindo que o Domínio permaneça rico e isento de estruturas como `switch/case` sem comprometer os bancos de dados que armazenam os status em formato de texto.
 
 - **Catálogo de Itens (SQLite):** Ao iniciar o sistema, um catálogo de produtos pré-cadastrados é carregado do SQLite e disponibilizado na UI. O usuário pode adicionar os itens do catálogo direto para o carrinho ou cadastrar novos itens permanentemente.

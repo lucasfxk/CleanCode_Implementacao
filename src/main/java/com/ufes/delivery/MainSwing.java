@@ -47,7 +47,7 @@ public class MainSwing {
         // 1. INFRASTRUCTURE
         // =================================================================
         CupomRepositoryEmMemoria cupomRepositoryConcrete = new CupomRepositoryEmMemoria();
-        PedidoRepositoryOutputPort pedidoRepository      = new PedidoRepositoryEmSQLite(cupomRepositoryConcrete);
+        PedidoRepositoryOutputPort pedidoRepository      = new PedidoRepositoryEmMemoria();
         ItemRepositoryOutputPort itemRepository          = new ItemRepositoryEmSQLite();
         
 

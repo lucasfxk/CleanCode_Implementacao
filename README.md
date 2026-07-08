@@ -37,6 +37,7 @@ Infrastructure → Adapter → Application (Use Cases / Ports) → Domain (Entit
 
 | Padrão | Onde | Por quê |
 |--------|------|---------|
+| **State (GoF)** | `EstadoPedido` (e suas filhas `EstadoCriado`, etc.) | Centraliza a lógica de transição de status usando polimorfismo, evitando complexidade ciclomática na Entidade raiz. |
 | **Strategy** | `IFormaDescontoTaxaEntrega` | Permite variar algoritmos de desconto sem alterar o Use Case. |
 | **Observer** | `NotificacaoOutputPort` | Desacopla as atualizações (UI/Console) da regra de negócio (Use Case). |
 | **Repository** | Output Ports de Repositório | Abstrai a persistência, permitindo trocar Memória por Banco de Dados SQLite de forma invisível para o domínio. |
@@ -45,6 +46,8 @@ Infrastructure → Adapter → Application (Use Cases / Ports) → Domain (Entit
 | **Facade** | `PedidoController` e `ItemController` | Simplificam o acesso da interface aos casos de uso. |
 
 ### Destaques da Implementação
+
+- **Padrão State Puro:** O ciclo de vida do pedido foi modelado utilizando o Padrão State Clássico do GoF, garantindo que o Domínio permaneça rico e isento de estruturas como `switch/case` sem comprometer os bancos de dados que armazenam os status em formato de texto.
 
 - **Catálogo de Itens (SQLite):** Ao iniciar o sistema, um catálogo de produtos pré-cadastrados é carregado do SQLite e disponibilizado na UI. O usuário pode adicionar os itens do catálogo direto para o carrinho ou cadastrar novos itens permanentemente.
 - **Auto-Load de Pedidos:** A interface consulta automaticamente o repositório ao abrir e exibe os pedidos em uma `JTable`.

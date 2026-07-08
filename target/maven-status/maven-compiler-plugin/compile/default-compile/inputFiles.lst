@@ -37,6 +37,14 @@ C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\
 C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\CupomDescontoPedido.java
 C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\Item.java
 C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\Pedido.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoCancelado.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoConfirmado.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoCriado.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoEmPreparo.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoEntregue.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoPedido.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoPedidoFactory.java
+C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\state\EstadoSaiuParaEntrega.java
 C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\domain\entity\StatusPedido.java
 C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\infrastructure\config\ConfiguracaoService.java
 C:\Users\rique\OneDrive\Desktop\trabalho-final\CleanCode_Implementacao\src\main\java\com\ufes\delivery\infrastructure\notification\NotificacaoConsole.java

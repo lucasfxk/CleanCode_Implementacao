@@ -24,17 +24,6 @@ public enum StatusPedido {
         return descricao;
     }
 
-    /** Regra de negocio: transicoes validas de status. */
-    public boolean podeTransicionarPara(StatusPedido proximo) {
-        return switch (this) {
-            case CRIADO      -> proximo == CONFIRMADO || proximo == CANCELADO;
-            case CONFIRMADO  -> proximo == EM_PREPARO || proximo == CANCELADO;
-            case EM_PREPARO  -> proximo == SAIU_PARA_ENTREGA || proximo == CANCELADO;
-            case SAIU_PARA_ENTREGA -> proximo == ENTREGUE;
-            case ENTREGUE, CANCELADO -> false;
-        };
-    }
-
     @Override
     public String toString() {
         return name() + " — " + descricao;

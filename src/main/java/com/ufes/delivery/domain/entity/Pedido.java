@@ -6,6 +6,9 @@ import java.util.List;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
+import com.ufes.delivery.domain.entity.state.EstadoPedido;
+import com.ufes.delivery.domain.entity.state.EstadoCriado;
+import com.ufes.delivery.domain.entity.state.EstadoPedidoFactory;
 
 public class Pedido {
     private final String id;
@@ -16,7 +19,7 @@ public class Pedido {
     private LocalDateTime data;
 
     private CupomDescontoPedido cupomPedidoAplicado;
-    private StatusPedido status = StatusPedido.CRIADO;
+    private EstadoPedido estado = new EstadoCriado();
 
     public Pedido(LocalDateTime data, Cliente cliente, double taxaEntrega) {
         if (data == null) {
@@ -45,7 +48,7 @@ public class Pedido {
         this.data = data;
         this.cliente = cliente;
         this.taxaEntrega = taxaEntrega;
-        this.status = status;
+        this.estado = EstadoPedidoFactory.criar(status);
         this.itens = new ArrayList<>(itens);
         this.cuponsDescontoEntrega = new ArrayList<>(cuponsDescontoEntrega);
         this.cupomPedidoAplicado = cupomPedidoAplicado;
@@ -186,18 +189,14 @@ public class Pedido {
 
 
     public StatusPedido getStatus() {
-        return status;
+        return estado.getStatus();
     }
 
     public void atualizarStatus(StatusPedido novoStatus) {
         if (novoStatus == null) {
             throw new IllegalArgumentException("Novo status nao pode ser nulo");
         }
-        if (!this.status.podeTransicionarPara(novoStatus)) {
-            throw new IllegalStateException(
-                "Transicao invalida: " + this.status.name() + " -> " + novoStatus.name());
-        }
-        this.status = novoStatus;
+        this.estado = this.estado.atualizarStatus(novoStatus);
     }
 
     @Override
@@ -211,7 +210,7 @@ public class Pedido {
                 + ", cupomPedidoAplicado=" + cupomPedidoAplicado
                 + ", valorPedido=" + getValorPedido()
                 + ", totalDescontosTaxaEntrega=" + getTotalDescontosTaxaEntrega()
-                + ", status=" + status
+                + ", status=" + getStatus()
                 + ", valorTotal=" + calcularValorTotal()
                 + "}";
     }

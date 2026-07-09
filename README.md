@@ -44,7 +44,6 @@ Infrastructure → Adapter → Application (Use Cases / Ports) → Domain (Entit
 | **Repository** | Output Ports de Repositório | Abstrai a persistência, permitindo trocar Memória por Banco de Dados SQLite de forma invisível para o domínio. |
 | **DTO** | `CriarPedidoDTO`, `ItemDTO`, `PedidoResumoDTO` | Transferência de dados segura, blindando a UI para que ela não acesse Entidades de Domínio. |
 | **Dependency Injection** | `MainSwing.java` e `Main.java` | Monta toda a árvore de dependências no ponto mais externo (Composition Root). |
-| **Facade** | `PedidoController` e `ItemController` | Simplificam o acesso da interface aos casos de uso. |
 
 ### Destaques da Implementação
 

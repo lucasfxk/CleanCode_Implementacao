@@ -1,6 +1,7 @@
 # Sistema de Delivery — Clean Architecture
 
 ## Projeto de Sistemas de Software — UFES 2026/1
+Integrantes do grupo: Suelen Salarolli Bisi, Lucas Borges do Carmo,Fabrício Lopes Lima do Amaral,Raphael Figueiredo Secchin,Marcelo Vieira Gomes,Maria Clara Gueler Feitani e  Henrique Queiroz Teixeira.
 
 ### Descrição
 
